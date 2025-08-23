@@ -17,6 +17,13 @@ export function getDb() {
 export async function migrate() {
   const db = getDb();
   const statements = [
+    `CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('superadmin','doctor','nurse','employee')),
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );`,
     `CREATE TABLE IF NOT EXISTS patients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
