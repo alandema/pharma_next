@@ -27,7 +27,8 @@ export default async function HomePage() {
           </div>
           <button className="bg-blue-600 text-white px-3 py-1 text-sm" formAction={async (fd: FormData) => {
             'use server';
-            await fetch('/api/auth/login', {
+            const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            await fetch(base + '/api/auth/login', {
               method: 'POST',
               body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }),
               headers: { 'Content-Type': 'application/json' }
@@ -39,7 +40,11 @@ export default async function HomePage() {
         <div className="space-y-2">
           <div>Logged in as <strong>{user.username}</strong> ({user.role})</div>
           <form action="/api/auth/logout" method="post">
-            <button className="bg-gray-700 text-white px-3 py-1 text-sm" formAction={async () => { 'use server'; await fetch('/api/auth/logout', { method: 'POST' }); }}>Logout</button>
+            <button className="bg-gray-700 text-white px-3 py-1 text-sm" formAction={async () => { 
+              'use server'; 
+              const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+              await fetch(base + '/api/auth/logout', { method: 'POST' }); 
+            }}>Logout</button>
           </form>
         </div>
       )}
