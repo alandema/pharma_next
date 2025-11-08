@@ -1,8 +1,16 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import './globals.css';
 
-export const metadata = {
-  title: 'Medical Prescription App',
+export const metadata: Metadata = {
+  title: {
+    default: 'Medical Prescription App',
+    template: '%s | Medical Prescription App',
+  },
+  description: 'Medical prescription management system built with Next.js and Turso',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,5 +1,5 @@
+import { prisma } from '@/src/lib/prisma';
 import { NextResponse } from 'next/server';
-import { getDb } from '@/src/lib/db';
 import { z } from 'zod';
 
 const updateSchema = z.object({
@@ -22,10 +22,11 @@ const updateSchema = z.object({
 
 export async function GET(_req: Request, context: any) {
   const { params } = context as { params: { id: string } };
-  const db = getDb();
-  const rs = await db.execute({ sql: 'SELECT * FROM patients WHERE id = ?', args: [params.id] });
-  if (!rs.rows.length) return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
-  return NextResponse.json(rs.rows[0]);
+  const patient = await prisma.patient.findUnique({
+    where: { id: parseInt(params.id) },
+  });
+  if (!patient) return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
+  return NextResponse.json(patient);
 }
 
 export async function PUT(req: Request, context: any) {
@@ -33,22 +34,27 @@ export async function PUT(req: Request, context: any) {
   try {
     const body = await req.json();
     const parsed = updateSchema.parse(body);
-    const db = getDb();
 
     if (parsed.cpf && parsed.cpf !== '000.000.000-00') {
-      const exists = await db.execute({ sql: 'SELECT id FROM patients WHERE cpf = ? AND id != ?', args: [parsed.cpf, params.id] });
-      if (exists.rows.length) return NextResponse.json({ error: 'CPF já cadastrado' }, { status: 400 });
+      const exists = await prisma.patient.findFirst({
+        where: {
+          cpf: parsed.cpf,
+          NOT: { id: parseInt(params.id) },
+        },
+        select: { id: true },
+      });
+      if (exists) return NextResponse.json({ error: 'CPF já cadastrado' }, { status: 400 });
     }
 
     const entries = Object.entries(parsed).filter(([, v]) => v !== undefined);
     if (!entries.length) return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
 
-    const setClause = entries.map(([k]) => `${k} = ?`).join(', ');
-    const values = entries.map(([, v]) => v);
+    const patient = await prisma.patient.update({
+      where: { id: parseInt(params.id) },
+      data: parsed,
+    });
 
-    await db.execute({ sql: `UPDATE patients SET ${setClause} WHERE id = ?`, args: [...values, params.id] });
-    const rs = await db.execute({ sql: 'SELECT * FROM patients WHERE id = ?', args: [params.id] });
-    return NextResponse.json(rs.rows[0]);
+    return NextResponse.json(patient);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }
@@ -56,7 +62,8 @@ export async function PUT(req: Request, context: any) {
 
 export async function DELETE(_req: Request, context: any) {
   const { params } = context as { params: { id: string } };
-  const db = getDb();
-  await db.execute({ sql: 'DELETE FROM patients WHERE id = ?', args: [params.id] });
+  await prisma.patient.delete({
+    where: { id: parseInt(params.id) },
+  });
   return NextResponse.json({ success: true });
 }

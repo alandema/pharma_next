@@ -1,32 +1,33 @@
 {
-  "name": "nextjs",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "eslint .",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@libsql/client": "^0.15.12",
-    "bcryptjs": "^2.4.3",
+    "@prisma/adapter-libsql": "^6.19.0",
+    "@prisma/client": "latest",
+    "@prisma/extension-accelerate": "latest",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.2",
-    "next": "15.5.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "zod": "^3.23.8"
+    "next": "latest",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.2.1",
-    "tailwindcss": "^4",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.20.4",
+    "postcss": "^8",
+    "prisma": "latest",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

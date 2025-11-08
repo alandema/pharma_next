@@ -8,7 +8,7 @@
  */
 import bcrypt from 'bcryptjs';
 import 'dotenv/config';
-import { getDb } from '../src/lib/db';
+import { prisma } from '../src/lib/prisma';
 
 const args = process.argv.slice(2);
 const params: Record<string, string> = {};
@@ -32,11 +32,20 @@ async function main() {
   const { username, password, role = 'doctor' } = params;
   if (!username || !password) { console.error('Missing --username or --password'); process.exit(1); }
   if (!['superadmin', 'doctor', 'nurse', 'employee'].includes(role)) { console.error('Invalid role'); process.exit(1); }
-  const db = getDb();
-  const existing = await db.execute({ sql: 'SELECT id FROM users WHERE username = ? LIMIT 1', args: [username] });
-  if (existing.rows.length) { console.error('Username already exists'); process.exit(1); }
+
+  const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+  if (existing) { console.error('Username already exists'); process.exit(1); }
+
   const hash = await bcrypt.hash(password, 10);
-  await db.execute({ sql: 'INSERT INTO users (username, password_hash, role) VALUES (?,?,?)', args: [username, hash, role] });
+  await prisma.user.create({
+    data: {
+      username,
+      password_hash: hash,
+      role,
+    },
+  });
+
   console.log('User created:', username, 'role:', role);
+  await prisma.$disconnect();
 }
 main();

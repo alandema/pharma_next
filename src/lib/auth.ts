@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
-import { getDb } from './db';
+import { prisma } from './prisma';
 
 // ROLES place-holder; define granular permissions later
 export type Role = 'superadmin' | 'doctor' | 'nurse' | 'employee';
@@ -11,9 +11,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret-change';
 const JWT_EXPIRES = '8h';
 
 export async function findUserByUsername(username: string) {
-  const db = getDb();
-  const rs = await db.execute({ sql: 'SELECT id, username, password_hash, role FROM users WHERE username = ? LIMIT 1', args: [username] });
-  return rs.rows[0] as any | undefined;
+  const user = await prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      username: true,
+      password_hash: true,
+      role: true,
+    },
+  });
+  return user as any | undefined;
 }
 
 export async function verifyPassword(password: string, hash: string) {

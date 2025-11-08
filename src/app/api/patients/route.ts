@@ -1,5 +1,5 @@
+import { prisma } from '@/src/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/src/lib/db';
 import { z } from 'zod';
 
 const patientSchema = z.object({
@@ -21,40 +21,33 @@ const patientSchema = z.object({
 });
 
 export async function GET() {
-  const db = getDb();
-  const rs = await db.execute(`SELECT * FROM patients ORDER BY name ASC`);
-  return NextResponse.json(rs.rows);
+  const patients = await prisma.patient.findMany({
+    orderBy: { name: 'asc' },
+  });
+  return NextResponse.json(patients);
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = patientSchema.parse(body);
-    const db = getDb();
 
     // Unique CPF check
     if (parsed.cpf && parsed.cpf !== '000.000.000-00') {
-      const existing = await db.execute({
-        sql: 'SELECT id FROM patients WHERE cpf = ? LIMIT 1',
-        args: [parsed.cpf]
+      const existing = await prisma.patient.findUnique({
+        where: { cpf: parsed.cpf },
+        select: { id: true },
       });
-      if (existing.rows.length) {
+      if (existing) {
         return NextResponse.json({ error: 'CPF já cadastrado' }, { status: 400 });
       }
     }
 
-    const cols = Object.keys(parsed).join(', ');
-    const placeholders = Object.keys(parsed).map(() => '?').join(', ');
-    const values = Object.values(parsed);
-
-    const result = await db.execute({
-      sql: `INSERT INTO patients (${cols}) VALUES (${placeholders})`,
-      args: values
+    const patient = await prisma.patient.create({
+      data: parsed,
     });
 
-  const id = Number(result.lastInsertRowid);
-    const patient = await db.execute({ sql: 'SELECT * FROM patients WHERE id = ?', args: [id] });
-    return NextResponse.json(patient.rows[0], { status: 201 });
+    return NextResponse.json(patient, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 400 });
   }

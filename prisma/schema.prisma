@@ -1,0 +1,77 @@
+// Prisma schema for pharma_next with Turso (libSQL)
+// This schema replaces the raw SQL migrations with a type-safe ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "libsql"
+  url      = env("TURSO_DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  password_hash String   @map("password_hash")
+  role          String   // superadmin, doctor, nurse, employee
+  created_at    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Patient {
+  id              Int      @id @default(autoincrement())
+  name            String
+  rg              String?
+  gender          String?
+  cpf             String?  @unique
+  birth_date      String?  @map("birth_date")
+  phone           String?
+  zipcode         String?
+  street          String?
+  district        String?
+  house_number    String?  @map("house_number")
+  additional_info String?  @map("additional_info")
+  country         String?
+  state           String?
+  city            String?
+  medical_history String?  @map("medical_history")
+  created_at      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  prescriptions Prescription[]
+
+  @@map("patients")
+}
+
+model Prescription {
+  id              Int      @id @default(autoincrement())
+  patient_id      Int      @map("patient_id")
+  date_prescribed String   @map("date_prescribed")
+  json_form_info  String   @map("json_form_info")
+  created_at      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  @@map("prescriptions")
+}
+
+model Cid {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  description String?
+  created_at  DateTime @default(now()) @map("created_at")
+
+  @@map("cids")
+}
+
+model Medication {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  information String?
+  created_at  DateTime @default(now()) @map("created_at")
+
+  @@map("medications")
+}
