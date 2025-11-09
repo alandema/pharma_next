@@ -1,3 +1,4 @@
+import LoginForm from '@/src/components/LoginForm';
 import Link from 'next/link';
 
 async function getUser() {
@@ -14,27 +15,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Pharma App</h1>
-      {!user && (
-        <form className="space-y-2 max-w-xs" action="/api/auth/login" method="post">
-          <div>
-            <label className="block text-sm">Username</label>
-            <input name="username" className="border px-2 py-1 w-full" />
-          </div>
-          <div>
-            <label className="block text-sm">Password</label>
-            <input type="password" name="password" className="border px-2 py-1 w-full" />
-          </div>
-          <button className="bg-blue-600 text-white px-3 py-1 text-sm" formAction={async (fd: FormData) => {
-            'use server';
-            const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-            await fetch(base + '/api/auth/login', {
-              method: 'POST',
-              body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }),
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }}>Login</button>
-        </form>
-      )}
+      {!user && <LoginForm />}
       {user && (
         <div className="space-y-2">
           <div>Logged in as <strong>{user.username}</strong> ({user.role})</div>

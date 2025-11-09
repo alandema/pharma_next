@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
     const user = await findUserByUsername(username);
     if (!user) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     const ok = await verifyPassword(password, (user as any).password_hash);
+    console.log('Password verification result:', ok);
     if (!ok) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     const token = signToken({ id: (user as any).id, username: (user as any).username, role: (user as any).role });
     const res = NextResponse.json({ user: { id: user.id, username: user.username, role: user.role } });
