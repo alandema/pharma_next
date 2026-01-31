@@ -1,12 +1,20 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { verifyToken } from './lib/auth';
+import { verifyToken, getUserRole } from './lib/auth';
 
 // Basic protection example (expand paths & role checks later)
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   console.log('[PROXY] Running for path:');
   const protectedPrefixes = ['/patients', '/medications', '/cids', '/prescriptions'];
   const pathname = req.nextUrl.pathname;
+  const userRole = await getUserRole(req);
+
+  if (pathname.startsWith('/admin')) {
+    if (userRole && userRole !== 'superadmin') {
+      // Redirect non-admins to the home page or a login page
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+  }
 
   console.log('[PROXY] Running for path:', pathname);
 

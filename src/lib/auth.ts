@@ -1,7 +1,6 @@
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { prisma } from './db';
-import { is } from 'zod/locales';
 
 // ROLES place-holder; define granular permissions later
 export type Role = 'superadmin' | 'user' | 'employee';
@@ -50,3 +49,16 @@ export const RolePermissions: Record<Role, string[]> = {
   user: [],
   employee: []
 };
+
+export async function getUserRole(req: Request): Promise<Role | null> {
+  // first check cookies for auth_token
+  const cookieHeader = req.headers.get('cookie') || '';
+  const cookies = Object.fromEntries(cookieHeader.split('; ').map(c => {
+    const [key, ...v] = c.split('=');
+    return [key, v.join('=')];
+  }));
+  const token = cookies['auth_token'];
+  if (!token) return null;
+  const payload = verifyToken(token);
+  return payload ? payload.role : null;
+}
