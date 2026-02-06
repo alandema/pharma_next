@@ -1,34 +1,26 @@
 {
+  "name": "pharma-nuxt-app",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint ."
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "dev:debug": "node --inspect node_modules/nuxt/bin/nuxt.mjs dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@prisma/adapter-neon": "latest",
-    "@prisma/client": "latest",
-    "@prisma/extension-accelerate": "latest",
-    "@types/bcryptjs": "latest",
-    "@types/jsonwebtoken": "latest",
+    "@prisma/adapter-neon": "^7.3.0",
+    "@prisma/client": "^7.3.0",
     "bcryptjs": "latest",
-    "dotenv": "latest",
-    "jsonwebtoken": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "zod": "latest"
+    "dotenv": "^17.2.4",
+    "nuxt": "latest",
+    "vue": "latest",
+    "vue-router": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "prisma": "latest",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "prisma": "^7.3.0"
   }
 }

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import 'dotenv/config';
-import { prisma } from '@/lib/db';
+import { prisma } from '../server/utils/db';
 
 const args = process.argv.slice(2);
 const params: Record<string, string> = {};
@@ -21,9 +21,10 @@ for (let i = 0; i < args.length; i++) {
 }
 
 async function main() {
-  const { username, password, role = 'doctor' } = params;
-  if (!username || !password) { console.error('Missing --username or --password'); process.exit(1); }
-  if (!['superadmin', 'doctor', 'nurse', 'employee'].includes(role)) { console.error('Invalid role'); process.exit(1); }
+  const { username, password} = params;
+  if (!username || !password) { 
+    console.error('Missing --username or --password'); process.exit(1);
+  }
 
   const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } });
   if (existing) { console.error('Username already exists'); process.exit(1); }
@@ -33,11 +34,11 @@ async function main() {
     data: {
       username,
       password_hash: hash,
-      role,
+      role: 'admin',
     },
   });
 
-  console.log('User created:', username, 'role:', role);
+  console.log('User created:', username, 'role:', 'admin');
   await prisma.$disconnect();
 }
 main();

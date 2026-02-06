@@ -1,7 +1,9 @@
 .vscode
 dev.db
 .github
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+.nuxt
+.output
+generated/
 
 # dependencies
 /node_modules
@@ -16,12 +18,10 @@ dev.db
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
 # production
 /build
+/dist
+dist-ssr
 
 # misc
 .DS_Store
@@ -33,12 +33,19 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
-
-# vercel
-.vercel
+!.env.example
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# Vite
+.vite
+*.local
+
+# Editor directories
+.idea
+*.swp
+*.swo
+*~
