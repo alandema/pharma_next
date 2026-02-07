@@ -1,7 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'client-middleware'
-})
 const data_hello = await useFetch('/api/hello')
 </script>
 

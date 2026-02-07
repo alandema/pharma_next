@@ -3,7 +3,7 @@ const username = ref('')
 const password = ref('')
 const handleSubmit = async () => {
   try {
-    const response = await fetch('/api/auth/signup', {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -11,20 +11,22 @@ const handleSubmit = async () => {
       body: JSON.stringify({ username: username.value, password: password.value })
     })
     if (!response.ok) {
-      throw new Error('Signup failed')
+      throw new Error('Login failed')
     }
-    const data = await response.json()
-    console.log('Signup successful:', data)
+    await navigateTo('/')
   } catch (error) {
-    console.error('Error during signup:', error)
+    console.error('Error during login:', error)
   }
 }
+
 </script>
 
 <template>
   <form @submit.prevent="handleSubmit">
     <input v-model="username" type="text" placeholder="Username" required />
     <input v-model="password" type="password" placeholder="Password" required />
-    <button type="submit">Sign Up</button>
+    <button type="submit">Sign In</button>
   </form>
+
+  <button @click="$router.push('/auth/signup')">Go to Sign Up</button>
 </template>
