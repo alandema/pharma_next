@@ -14,7 +14,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const existing = await prisma.user.findUnique({ where: { username }, select: { id: true, password_hash: true, username: true } });
+  const existing = await prisma.user.findUnique(
+    { where: { username },
+    select: { id: true, password_hash: true, username: true, role: true 
+    }
+    });
   if (!existing) {
     throw createError({
       statusCode: 409,
@@ -29,7 +33,7 @@ export default defineEventHandler(async (event) => {
     });
   }
     const token = jwt.sign(
-      { userId: existing.id, username: existing.username },
+      { userId: existing.id, username: existing.username , role: existing.role} as JwtPayload,
       JWT_SECRET!,
       { expiresIn: '8h' }
     );
