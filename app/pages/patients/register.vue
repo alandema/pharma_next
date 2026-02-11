@@ -1,9 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: [
-    'user-pages-middleware',
-  ],
-})
 
 const name = ref('')
 const rg = ref('')

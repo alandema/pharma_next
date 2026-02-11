@@ -7,6 +7,9 @@ export default defineEventHandler(async (event) => {
 
   const patient = await prisma.patients.findUnique({
     where,
+    include: {
+      prescriptions: true,
+    },
   });
 
   if (!patient) {
@@ -32,5 +35,6 @@ export default defineEventHandler(async (event) => {
     state: patient.state,
     city: patient.city,
     medical_history: patient.medical_history,
+    prescriptions: patient.prescriptions,
   };
 })

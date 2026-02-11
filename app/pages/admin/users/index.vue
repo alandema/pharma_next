@@ -5,6 +5,11 @@ const {data: users}  = await useFetch('/api/users',
         method: 'GET',
     }
 )
+function navigate (path: string) {
+  return navigateTo({
+    path: path,
+  })
+}
 </script>
 
 <template>
@@ -14,4 +19,5 @@ const {data: users}  = await useFetch('/api/users',
         <NuxtLink :to="`/admin/users/${user.id}`">{{ user.username }} - {{ user.role }}</NuxtLink>
         </li>
     </ul>
+    <button @click="navigate('/admin/users/register')">Create New User</button>
 </template>

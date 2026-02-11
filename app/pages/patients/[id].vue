@@ -1,7 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: ['user-pages-middleware'],
-})
 
 type Patient = {
   id: string;
@@ -20,6 +17,15 @@ type Patient = {
   state?: string;
   city?: string;
   medical_history?: string;
+  prescriptions: Prescription[];
+}
+
+type Prescription = {
+  id: string;
+  patient_id: string;
+  date_prescribed: string;
+  json_form_info: string;
+  created_at: string;
 }
 
 const route = useRoute()
@@ -89,4 +95,11 @@ const save = async () => {
     <textarea v-model="medical_history" placeholder="Medical History"></textarea>
     <button type="submit">Save</button>
   </form>
+  <h2>Prescriptions</h2>
+  <ul v-if="patient?.prescriptions?.length">
+    <li v-for="prescription in patient.prescriptions" :key="prescription.id">
+      <strong>{{ prescription.date_prescribed }}</strong>: {{ prescription.json_form_info }}
+    </li>
+  </ul>
+  <p v-else>No prescriptions found.</p>
 </template>
