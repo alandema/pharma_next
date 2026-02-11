@@ -1,5 +1,19 @@
-export default defineEventHandler((event) => {
-  const user_id = getRouterParam(event, 'id')
+export default defineEventHandler(async (event) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: event.context.params?.id,
+    },
+  });
 
-  return `Hello, ${user_id}!`
+  if (!user) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'User not found',
+    });
+  }
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+  };
 })

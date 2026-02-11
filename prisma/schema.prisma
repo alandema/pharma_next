@@ -12,13 +12,17 @@ model User {
   username      String   @unique
   password_hash String   @map("password_hash")
   role          String
+  is_active     Boolean  @default(true)
   created_at    DateTime @default(now()) @map("created_at")
+  patients      Patients[]
 
   @@map("users")
 }
 
-model Patient {
+model Patients {
   id              String         @id @default(uuid())
+  registered_by   String
+  user            User           @relation(fields: [registered_by], references: [id], onDelete: SetNull)
   name            String
   rg              String?
   gender          String?
@@ -46,21 +50,12 @@ model Prescription {
   date_prescribed String   @map("date_prescribed")
   json_form_info  String   @map("json_form_info")
   created_at      DateTime @default(now()) @map("created_at")
-  patient         Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  patients        Patients  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
 
   @@map("prescriptions")
 }
 
-model Cid {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  description String?
-  created_at  DateTime @default(now()) @map("created_at")
-
-  @@map("cids")
-}
-
-model Medication {
+model Formulas {
   id          String   @id @default(uuid())
   name        String   @unique
   information String?

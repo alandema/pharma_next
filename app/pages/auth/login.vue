@@ -6,12 +6,27 @@ const handleSubmit = async () => {
     console.log('Attempting to log in with:', { username: username.value, password: password.value })
     await $fetch('/api/auth/login', {
       method: 'POST',
-      body: { username: username.value, password: password.value }
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value,
+      }),
     })
+    
+    // Redirect to home page after successful login
+    await refreshNuxtData() // Clears all useFetch caches
     await navigateTo('/')
   } catch (error) {
     console.error('Error during login:', error)
   }
+}
+
+function navigate (path: string) {
+  return navigateTo({
+    path: path,
+  })
 }
 
 </script>
@@ -20,8 +35,8 @@ const handleSubmit = async () => {
   <form @submit.prevent="handleSubmit">
     <input v-model="username" type="text" placeholder="Username" required />
     <input v-model="password" type="password" placeholder="Password" required />
-    <button type="submit">Sign In</button>
+    <button loading-auto type="submit">Sign In</button>
   </form>
 
-  <button @click="$router.push('/auth/signup')">Go to Sign Up</button>
+  <button @click="navigate('/auth/signup')">Go to Sign Up</button>
 </template>

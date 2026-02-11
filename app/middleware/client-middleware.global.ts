@@ -1,6 +1,6 @@
-// interface User {
-//   role: string
-// }
+interface User {
+  role: string
+}
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   console.log('Running global client middleware for route:', to.path)
@@ -23,17 +23,17 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   // // }
 
 
-  // const allowedPaths = ['/auth/login', '/auth/signup']
+  const allowedPaths = ['/auth/login', '/auth/signup']
 
-  // const adminPaths = ['/admin']
+  const adminPaths = ['/admin']
   
-  // const headers = useRequestHeaders(['cookie'])
+  const headers = useRequestHeaders(['cookie'])
 
   // // 1. Always let users visit login/signup without any checks
-  // if (allowedPaths.includes(to.path)) {
-  //   console.log('Allowed path, no auth check needed.')
-  //   return
-  // }
+  if (allowedPaths.includes(to.path)) {
+    console.log('Allowed path, no auth check needed.')
+    return
+  }
 
   // // 2. No cookie at all → redirect immediately, no API call needed
   // const userCookie = useCookie('AccessToken')
@@ -44,24 +44,24 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   // // 3. Cookie exists → validate it server-side
 
-  //   const user = await $fetch<User>('/api/users/me', {
-  //     method: 'GET',
-  //     credentials: 'include',
-  //     headers: headers
-  //   }).catch(() => null)
+    const user = await $fetch<User>('/api/users/me', {
+      method: 'GET',
+      credentials: 'include',
+      headers: headers
+    }).catch(() => null)
 
-  // if (!user) {
-  //   console.log('Invalid token, redirecting to login.')
-  //   return navigateTo('/auth/login')
-  // }
+  if (!user) {
+    console.log('Invalid token, redirecting to login.')
+    return navigateTo('/auth/login')
+  }
 
-  // console.log(user.role)
-  // console.log(to.path)
-  // if (adminPaths.some(path => to.path.startsWith(path)) && user.role !== 'admin') {
-  //   console.log('User is not admin, redirecting to home.')
-  //   return navigateTo('/')
-  // }
+  console.log(user.role)
+  console.log(to.path)
+  if (adminPaths.some(path => to.path.startsWith(path)) && user.role !== 'admin') {
+    console.log('User is not admin, redirecting to home.')
+    return navigateTo('/')
+  }
 
-  // return true
+  return true
 
 })

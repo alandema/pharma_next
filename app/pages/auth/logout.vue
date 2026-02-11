@@ -13,6 +13,13 @@
 const loading = ref(false)
 const error = ref(null)
 
+  definePageMeta({
+  middleware: [
+    'user-pages-middleware',
+  ],
+})
+
+
 const handleLogout = async () => {
   loading.value = true
   error.value = null
@@ -20,16 +27,12 @@ const handleLogout = async () => {
   try {
     await $fetch('/api/auth/logout', {
       method: 'POST',
-      credentials: 'include'
     })
-    
-    // Redirect to login or home page
-    await navigateTo('/login')
-  } catch (err) {
-    error.value = 'Logout failed. Please try again.'
-    console.error(err)
+  } catch (error) {
+    console.error('Error during logout:', error)
   } finally {
     loading.value = false
   }
+  navigateTo('/')
 }
 </script>
