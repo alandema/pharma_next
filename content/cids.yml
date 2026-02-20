@@ -1,0 +1,35 @@
+codes:
+  - code: E29.1
+    name: Hipofunção testicular
+  - code: E29.8
+    name: Outra disfunção testicular
+  - code: E29.9
+    name: Disfunção testicular não especificada
+  - code: R86.1
+    name: Achados anormais de material proveniente dos órgãos genitais masculinos - nível hormonal anormal
+  - code: E28
+    name: Disfunção ovariana
+  - code: E28.2
+    name: Síndrome do ovário policístico
+  - code: E28.8
+    name: Outra disfunção ovariana
+  - code: E28.9
+    name: Disfunção ovariana não especificada
+  - code: R87.1
+    name: Achados anormais de material proveniente dos órgãos genitais femininos - nível hormonal anormal
+  - code: N95.1
+    name: Estado da menopausa e do climatério feminino
+  - code: E34.9
+    name: Transtorno endócrino não especificado
+  - code: E55
+    name: Deficiência de vitamina D
+  - code: E55.9
+    name: Deficiência não especificada de vitamina D
+  - code: F41.2
+    name: Transtorno misto ansioso e depressivo
+  - code: R45.4
+    name: Irritabilidade e mau humor
+  - code: E27.1
+    name: Hipofunção Adrenal
+  - code: E03.9
+    name: Hipotireoidismo não especificado

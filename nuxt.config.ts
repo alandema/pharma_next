@@ -1,6 +1,8 @@
 import { fileURLToPath } from 'url'
 
 export default defineNuxtConfig({
+  modules: ['@nuxt/content'],
+
   alias: {
     '~prisma/client': fileURLToPath(new URL('./generated/prisma', import.meta.url))
   },

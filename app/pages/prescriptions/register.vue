@@ -1,26 +1,23 @@
 <script setup lang="ts">
 
-const getTodayDate = () => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-};
+const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const patient_id = ref('');
 const date_prescribed = ref(getTodayDate());
 const json_form_info = ref('');
+const cid_code = ref('');
 
-const { data: patients } = await useFetch('/api/patients', {
-  method: 'GET',
-});
+const [{ data: patients }, { data: cidsData }] = await Promise.all([
+  useFetch('/api/patients'),
+  useAsyncData('cids', () => queryCollection('cids').first())
+]);
+
+const cids = computed(() => cidsData.value?.codes ?? []);
 
 const submit = async () => {
   await $fetch('/api/prescriptions', {
     method: 'POST',
-    body: {
-      patient_id: patient_id.value,
-      date_prescribed: date_prescribed.value,
-      json_form_info: json_form_info.value,
-    }
+    body: { patient_id: patient_id.value, date_prescribed: date_prescribed.value, cid_code: cid_code.value, json_form_info: json_form_info.value }
   });
   await navigateTo('/prescriptions');
 };
@@ -45,6 +42,14 @@ const submit = async () => {
       <input v-model="date_prescribed" type="date" required />
     </div>
     
+    <div>
+      <label>CID Code:</label>
+      <select v-model="cid_code" required>
+        <option value="" disabled>Select a CID code</option>
+        <option v-for="c in cids" :key="c.code" :value="c.code">{{ c.code }} – {{ c.name }}</option>
+      </select>
+    </div>
+
     <div>
       <label>Prescription Details:</label>
       <textarea v-model="json_form_info" placeholder="Enter prescription details" rows="10" required></textarea>

@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     where,
     include: {
       prescriptions: true,
+      user: { select: { id: true, username: true } },
     },
   });
 
@@ -35,6 +36,8 @@ export default defineEventHandler(async (event) => {
     state: patient.state,
     city: patient.city,
     medical_history: patient.medical_history,
+    registered_by: patient.registered_by,
+    registered_by_username: patient.user?.username ?? null,
     prescriptions: patient.prescriptions,
   };
 })

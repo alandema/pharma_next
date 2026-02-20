@@ -17,6 +17,8 @@ type Patient = {
   state?: string;
   city?: string;
   medical_history?: string;
+  registered_by: string;
+  registered_by_username: string | null;
   prescriptions: Prescription[];
 }
 
@@ -28,10 +30,19 @@ type Prescription = {
   created_at: string;
 }
 
+type Doctor = {
+  id: string;
+  username: string;
+  role: string;
+}
+
 const route = useRoute()
 const { data: patient, refresh } = await useFetch<Patient>(`/api/patients/${route.params.id}`, {
   method: 'GET'
 })
+
+const { data: allUsers } = await useFetch<Doctor[]>('/api/users', { method: 'GET' })
+const doctors = computed(() => allUsers.value?.filter(u => u.role === 'doctor') ?? [])
 
 const name = ref(patient.value?.name || '')
 const rg = ref(patient.value?.rg || '')
@@ -73,6 +84,31 @@ const save = async () => {
   refresh()
   await navigateTo('/admin/patients')
 }
+
+// Transfer
+const selectedDoctorId = ref('')
+const transferError = ref('')
+const transferSuccess = ref('')
+
+const transferPatient = async () => {
+  transferError.value = ''
+  transferSuccess.value = ''
+  if (!selectedDoctorId.value) {
+    transferError.value = 'Please select a doctor.'
+    return
+  }
+  try {
+    const result = await $fetch(`/api/patients/${route.params.id}/transfer`, {
+      method: 'POST',
+      body: { doctor_id: selectedDoctorId.value },
+    })
+    await refresh()
+    transferSuccess.value = `Patient successfully transferred to ${result.transferred_to}.`
+    selectedDoctorId.value = ''
+  } catch (err: any) {
+    transferError.value = err?.data?.statusMessage ?? 'Transfer failed.'
+  }
+}
 </script>
 
 <template>
@@ -95,6 +131,26 @@ const save = async () => {
     <textarea v-model="medical_history" placeholder="Medical History"></textarea>
     <button type="submit">Save</button>
   </form>
+  <hr />
+  <h2>Transfer Patient</h2>
+  <p>Current doctor: <strong>{{ patient?.registered_by_username ?? patient?.registered_by }}</strong></p>
+  <div>
+    <select v-model="selectedDoctorId">
+      <option value="" disabled>Select a doctor</option>
+      <option
+        v-for="doctor in doctors"
+        :key="doctor.id"
+        :value="doctor.id"
+        :disabled="doctor.id === patient?.registered_by"
+      >
+        {{ doctor.username }}{{ doctor.id === patient?.registered_by ? ' (current)' : '' }}
+      </option>
+    </select>
+    <button type="button" @click="transferPatient" :disabled="!selectedDoctorId">Transfer</button>
+  </div>
+  <p v-if="transferSuccess" style="color: green;">{{ transferSuccess }}</p>
+  <p v-if="transferError" style="color: red;">{{ transferError }}</p>
+
   <h2>Prescriptions</h2>
   <ul v-if="patient?.prescriptions?.length">
     <li v-for="prescription in patient.prescriptions" :key="prescription.id">
