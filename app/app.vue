@@ -1,8 +1,8 @@
 <template>
   <header>
     Header content
-    <button v-if="user" loading-auto @click="navigateTo('/')">Go Home</button>
-    <button v-if="user?.role === 'admin'" loading-auto @click="navigateTo('/admin')">Go Home Admin</button>
+    <button v-if="user?.role === 'admin'" loading-auto @click="navigateTo('/admin')">Go Home</button>
+    <button v-else-if="user" loading-auto @click="navigateTo('/')">Go Home</button>
   </header>
   <NuxtPage />
   <footer>

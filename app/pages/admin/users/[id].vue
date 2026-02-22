@@ -3,16 +3,16 @@
 type User = { id: string; username: string; role: string; is_active: boolean }
 
 const route = useRoute()
-const { data: user, refresh } = await useFetch<User>(`/api/users/${route.params.id}`, { method: 'GET' })
+const { data: user, refresh } = await useFetch<User>(`/api/users/admin/${route.params.id}`, { method: 'GET' })
 
 async function toggleActive() {
-  await $fetch(`/api/users/${route.params.id}`, { method: 'PATCH' })
+  await $fetch(`/api/users/admin/${route.params.id}`, { method: 'PATCH' })
   await refresh()
 }
 
 async function deleteUser() {
   if (!confirm(`Delete user "${user.value?.username}"? Their patients will be transferred to you.`)) return
-  await $fetch(`/api/users/${route.params.id}`, { method: 'DELETE' })
+  await $fetch(`/api/users/admin/${route.params.id}`, { method: 'DELETE' })
   navigateTo('/admin/users')
 }
 </script>

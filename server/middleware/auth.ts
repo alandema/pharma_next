@@ -20,10 +20,7 @@ export default defineEventHandler((event) => {
     '/favicon.ico'
   ];
 
-  const adminRoutes = [
-    '/admin',
-    '/admin/'
-  ];
+  const adminRoutes = ['/admin', '/api/users/admin'];
 
   // Check if the request path starts with any public route
   const isPublicRoute = publicRoutes.some(route => url.pathname.startsWith(route));

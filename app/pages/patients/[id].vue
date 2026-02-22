@@ -4,6 +4,7 @@ type Patient = {
   id: string;
   name: string;
   registered_by: string;
+  registered_by_username?: string | null;
   rg?: string;
   gender?: string;
   cpf?: string;
@@ -29,12 +30,35 @@ type Prescription = {
   created_at: string;
 }
 
+type Doctor = { id: string; username: string; role: string }
+
 const route = useRoute()
-const { data: patient, refresh } = await useFetch<Patient>(`/api/patients/${route.params.id}`, {
-  method: 'GET'
-})
+const { data: patient, refresh } = await useFetch<Patient>(`/api/patients/${route.params.id}`, { method: 'GET' })
 const { data: me } = await useFetch('/api/users/me')
-const canDelete = computed(() => (me.value as any)?.role === 'admin' || (me.value as any)?.userId === patient.value?.registered_by)
+const isAdmin = computed(() => (me.value as any)?.role === 'admin')
+const canDelete = computed(() => isAdmin.value || (me.value as any)?.userId === patient.value?.registered_by)
+
+const { data: allUsers } = await useFetch<Doctor[]>('/api/users/admin', { method: 'GET' })
+const doctors = computed(() => allUsers.value?.filter(u => u.role === 'doctor') ?? [])
+const selectedDoctorId = ref('')
+const transferError = ref('')
+const transferSuccess = ref('')
+const transferPatient = async () => {
+  transferError.value = ''
+  transferSuccess.value = ''
+  if (!selectedDoctorId.value) { transferError.value = 'Please select a doctor.'; return }
+  try {
+    const result = await $fetch(`/api/patients/${route.params.id}/transfer`, {
+      method: 'POST',
+      body: { doctor_id: selectedDoctorId.value },
+    })
+    await refresh()
+    transferSuccess.value = `Patient successfully transferred to ${result.transferred_to}.`
+    selectedDoctorId.value = ''
+  } catch (err: any) {
+    transferError.value = err?.data?.statusMessage ?? 'Transfer failed.'
+  }
+}
 
 const deletePatient = async () => {
   if (!confirm('Delete this patient?')) return
@@ -111,6 +135,20 @@ const save = async () => {
     </li>
   </ul>
   <p v-else>No prescriptions found.</p>
+  <template v-if="isAdmin">
+    <hr />
+    <h2>Transfer Patient</h2>
+    <p>Current doctor: <strong>{{ patient?.registered_by_username ?? patient?.registered_by }}</strong></p>
+    <select v-model="selectedDoctorId">
+      <option value="" disabled>Select a doctor</option>
+      <option v-for="doctor in doctors" :key="doctor.id" :value="doctor.id" :disabled="doctor.id === patient?.registered_by">
+        {{ doctor.username }}{{ doctor.id === patient?.registered_by ? ' (current)' : '' }}
+      </option>
+    </select>
+    <button type="button" @click="transferPatient" :disabled="!selectedDoctorId">Transfer</button>
+    <p v-if="transferSuccess" style="color: green;">{{ transferSuccess }}</p>
+    <p v-if="transferError" style="color: red;">{{ transferError }}</p>
+  </template>
   <button @click="navigateTo('/patients')">Back to Patients</button>
   <button v-if="canDelete" @click="deletePatient" style="color:red">Delete Patient</button>
 </template>
