@@ -9,6 +9,7 @@ if (process.env.SENDGRID_API_KEY) {
 
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
+
   const body = await readBody<{
     patient_id?: string;
     cid_code?: string;
@@ -92,60 +93,17 @@ export default defineEventHandler(async (event) => {
     });
 
     if (process.env.SENDGRID_API_KEY) {
-      const formulasHtml = formInfo.formulas.map(f => `<li><b>${f.formula_name}</b>: ${f.posology}</li>`).join('');
-      
-      // Email for the patient
+
       if (patient.email && patient.send_email) {
-        const patientTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_patient.html');
-        let patientHtml = fs.readFileSync(patientTemplatePath, 'utf-8');
-        patientHtml = patientHtml.replace('{{patientName}}', patient.name)
-                                 .replace('{{doctorName}}', prescriber.username)
-                                 .replace('{{formulasList}}', formulasHtml)
-                                 .replace('{{pdfUrl}}', blob.url);
-        console.log("Sending email to patient:", patient.email);                        
-        await sgMail.send({
-          to: patient.email,
-          from: 'plataforma@ammafarmacia.com.br', 
-          subject: 'Sua Nova Prescrição - Pharma Next',
-          html: patientHtml,
-        }).catch(e => console.error("SendGrid Error (Patient):", e.response?.body || e));
+        await sendPatientEmail(patient.email, patient.name, prescriber.username, blob.url);
       }
-      console.log("Patient email sent (if applicable).");
 
-      // Email for the prescriber (doctor)
-      console.log("Prescriber email info:", { email: prescriber.email, send_email: prescriber.send_email });
       if (prescriber.email && prescriber.send_email) {
-        const doctorTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_doctor.html');
-        let doctorHtml = fs.readFileSync(doctorTemplatePath, 'utf-8');
-        doctorHtml = doctorHtml.replace('{{patientName}}', patient.name)
-                               .replace('{{doctorName}}', prescriber.username)
-                               .replace('{{formulasList}}', formulasHtml)
-                               .replace('{{pdfUrl}}', blob.url);
-        console.log("Sending email to doctor:", prescriber.email);
-        await sgMail.send({
-          to: prescriber.email,
-          from: 'plataforma@ammafarmacia.com.br', 
-          subject: 'Cópia Extra: Prescrição Salva - Pharma Next',
-          html: doctorHtml,
-        }).catch(e => console.error("SendGrid Error (Doctor):", e.response?.body || e));
+        await sendPrescriberEmail(prescriber.email, prescriber.username, patient.name, blob.url);
       }
 
-      const pharmacyTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_pharmacy.html');
-      let pharmacyHtml = fs.readFileSync(pharmacyTemplatePath, 'utf-8');
-      pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patient.name)
-                                 .replace('{{doctorName}}', prescriber.username)
-                                 .replace('{{formulasList}}', formulasHtml)
-                                 .replace('{{pdfUrl}}', blob.url);
-      const emailsToSend = (process.env.ALWAYS_SEND_EMAILS || '').split(',').map(email => email.trim()).filter(email => email);
-      for (const email of emailsToSend) {
-        console.log("Sending email to always-send address:", email);
-        await sgMail.send({
-          to: email,
-          from: 'plataforma@ammafarmacia.com.br',
-          subject: 'Cópia Extra: Prescrição Salva - Pharma Next',
-          html: pharmacyHtml,
-        }).catch(e => console.error("SendGrid Error (Pharmacy):", e.response?.body || e));
-      }
+      await sendPharmacyEmail(patient.name, blob.url);
+
     }
   }
 
@@ -157,3 +115,51 @@ export default defineEventHandler(async (event) => {
     date_prescribed: prescription.date_prescribed.toISOString().slice(0, 10),
   };
 });
+
+
+async function sendPharmacyEmail(patientName: string, pdfUrl: string) {
+      const date = new Date().toISOString().slice(0, 10);
+      const pharmacyTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_pharmacy.html');
+      let pharmacyHtml = fs.readFileSync(pharmacyTemplatePath, 'utf-8');
+      pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patientName)
+                                 .replace('{{pdfUrl}}', pdfUrl);
+      const emailsToSend = (process.env.ALWAYS_SEND_EMAILS || '').split(',').map(email => email.trim()).filter(email => email);
+      for (const email of emailsToSend) {
+        await sgMail.send({
+          to: email,
+          from: 'plataforma@ammafarmacia.com.br',
+          subject: `${patientName} - ${date} - Nova Prescrição Salva`,
+          html: pharmacyHtml,
+        }).catch(e => console.error("SendGrid Error (Pharmacy):", e.response?.body || e));
+      }
+}
+
+async function sendPrescriberEmail(prescriberEmail: string, prescriberName: string, patientName: string, pdfUrl: string) {
+        const doctorTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_prescriber.html');
+        let doctorHtml = fs.readFileSync(doctorTemplatePath, 'utf-8');
+        doctorHtml = doctorHtml.replace('{{patientName}}', patientName)
+                               .replace('{{prescriberName}}', prescriberName)
+                               .replace('{{pdfUrl}}', pdfUrl);
+        await sgMail.send({
+          to: prescriberEmail,
+          from: 'plataforma@ammafarmacia.com.br', 
+          subject: `Prescrição gerada para - ${patientName}`,
+          html: doctorHtml,
+        }).catch(e => console.error("SendGrid Error (Doctor):", e.response?.body || e));
+}
+
+async function sendPatientEmail(patientEmail: string, patientName: string, prescriberName: string, pdfUrl: string) {
+        
+        const patientTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_patient.html');
+        let patientHtml = fs.readFileSync(patientTemplatePath, 'utf-8');
+        patientHtml = patientHtml.replace('{{patientName}}', patientName)
+                                 .replace('{{prescriberName}}', prescriberName)
+                                 .replace('{{pdfUrl}}', pdfUrl);
+        console.log("Sending email to patient:", patientEmail);                        
+        await sgMail.send({
+          to: patientEmail,
+          from: 'plataforma@ammafarmacia.com.br', 
+          subject: 'Sua Nova Prescrição - Pharma Next',
+          html: patientHtml,
+        }).catch(e => console.error("SendGrid Error (Patient):", e.response?.body || e));
+      }
