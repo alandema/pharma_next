@@ -57,6 +57,7 @@ model Prescription {
   prescribed_by   String?  @map("prescribed_by")
   date_prescribed DateTime @db.Date @map("date_prescribed")
   json_form_info  Json     @map("json_form_info")
+  pdf_url         String?  @map("pdf_url")
   created_at      DateTime @default(now()) @map("created_at")
   patient         Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   user            User?    @relation(fields: [prescribed_by], references: [id], onDelete: SetNull)

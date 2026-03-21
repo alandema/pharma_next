@@ -18,8 +18,13 @@ export function generatePDFDocument(body: any, doctorName: string, patientName: 
     
     const formulas = Array.isArray(body?.formulas) ? body.formulas : [];
     formulas.forEach((f: any) => {
-      doc.text(`- Medication: ${f.formula_name}`);
-      doc.text(`  Posology: ${f.posology}`);
+      if (f.formula_name) {
+        doc.text(`- Formula: ${f.formula_name}`);
+        doc.text(`  Descrição: ${f.description}`);
+      } else {
+        doc.text(`- Prescrição:`);
+        doc.text(`  ${f.description}`);
+      }
       doc.moveDown();
     });
     doc.end();

@@ -16,6 +16,7 @@
     "@prisma/client": "^7.3.0",
     "@sendgrid/mail": "^8.1.6",
     "@types/pdfkit": "^0.17.5",
+    "@vercel/blob": "^2.3.1",
     "bcryptjs": "latest",
     "better-sqlite3": "^12.6.2",
     "dotenv": "^17.2.4",

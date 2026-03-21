@@ -1,6 +1,6 @@
 <script setup lang="ts">
 type Formula = { id: string; name: string; information?: string | null };
-type PrescriptionFormulaInput = { formula_id: string; posology: string };
+type PrescriptionFormulaInput = { formula_id: string; description: string };
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
@@ -36,9 +36,9 @@ const parseFormulasFromQuery = () => {
     if (Array.isArray(parsed)) {
       formulasInput.value = parsed
         .slice(0, 10)
-        .map((item: { formula_id?: string; posology?: string }) => ({
+        .map((item: { formula_id?: string; description?: string }) => ({
           formula_id: item.formula_id || '',
-          posology: item.posology || '',
+          description: item.description || '',
         }));
     }
   } catch {}
@@ -46,7 +46,7 @@ const parseFormulasFromQuery = () => {
 
 const addFormula = () => {
   if (formulasInput.value.length >= 10) return;
-  formulasInput.value.push({ formula_id: '', posology: '' });
+  formulasInput.value.push({ formula_id: '', description: '' });
 };
 
 const removeFormula = (index: number) => {
@@ -55,8 +55,8 @@ const removeFormula = (index: number) => {
 
 const submit = async () => {
   const cleanedFormulas = formulasInput.value
-    .map((item) => ({ formula_id: item.formula_id, posology: item.posology.trim() }))
-    .filter((item) => item.formula_id && item.posology);
+    .map((item) => ({ formula_id: item.formula_id, description: item.description.trim() }))
+    .filter((item) => item.formula_id && item.description);
 
   const finalCid = cid_code.value === 'Outro' ? manual_cid.value.trim() : cid_code.value;
 
@@ -108,8 +108,9 @@ if (!formulasInput.value.length) addFormula();
           <div class="form-row">
             <div class="form-group" style="flex: 1;">
               <label>Fórmula {{ index + 1 }} *</label>
-              <select v-model="item.formula_id" required>
+              <select v-model="item.formula_id" @change="item.description = (item.formula_id === 'free' ? '' : (formulas?.find(f => f.id === item.formula_id)?.information || ''))" required>
                 <option value="" disabled>Selecione uma fórmula</option>
+                <option value="free">*Personalizada*</option>
                 <option v-for="formula in formulas" :key="formula.id" :value="formula.id">{{ formula.name }}</option>
               </select>
             </div>
@@ -118,8 +119,8 @@ if (!formulasInput.value.length) addFormula();
             </div>
           </div>
           <div class="form-group">
-            <label>Posologia *</label>
-            <textarea v-model="item.posology" placeholder="Ex: Tomar 1 cápsula a cada 8 horas" rows="3" required></textarea>
+            <label>Descrição *</label>
+            <textarea v-model="item.description" :placeholder="item.formula_id === 'free' ? 'Digite a descrição que sairá na receita...' : 'Você pode editar a fórmula aqui.'" rows="3" required></textarea>
           </div>
         </div>
         <button type="button" class="btn-sm" @click="addFormula" :disabled="formulasInput.length >= 10">+ Adicionar Fórmula</button>

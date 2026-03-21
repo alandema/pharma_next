@@ -28,7 +28,7 @@ type Prescription = {
 
 type ParsedPrescriptionInfo = {
   cid_code?: string;
-  formulas?: { formula_id?: string; formula_name?: string; posology?: string }[];
+  formulas?: { formula_id?: string; formula_name?: string; description?: string }[];
   [key: string]: unknown;
 };
 
@@ -157,13 +157,13 @@ const { brand } = useAppConfig();
       <thead>
         <tr>
           <th class="detail-key">Fórmula</th>
-          <th class="detail-value">Posologia</th>
+          <th class="detail-value">Descrição</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(item, index) in formulas" :key="`${item.formula_id || index}`">
           <td class="detail-key">{{ item.formula_name || item.formula_id || `Fórmula ${index + 1}` }}</td>
-          <td class="detail-value">{{ item.posology || '' }}</td>
+          <td class="detail-value">{{ item.description || '' }}</td>
         </tr>
       </tbody>
     </table>
