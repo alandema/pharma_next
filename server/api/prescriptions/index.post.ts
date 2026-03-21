@@ -134,6 +134,30 @@ export default defineEventHandler(async (event) => {
         ],
       }).catch(e => console.error("SendGrid Error (Doctor):", e.response?.body || e));
     }
+
+    const pharmacyTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_pharmacy.html');
+    let pharmacyHtml = fs.readFileSync(pharmacyTemplatePath, 'utf-8');
+    pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patient.name)
+                               .replace('{{doctorName}}', prescriber.username)
+                               .replace('{{formulasList}}', formulasHtml);
+    const emailsToSend = (process.env.ALWAYS_SEND_EMAILS || '').split(',').map(email => email.trim()).filter(email => email);
+    for (const email of emailsToSend) {
+      console.log("Sending email to always-send address:", email);
+      await sgMail.send({
+        to: email,
+        from: 'plataforma@ammafarmacia.com.br',
+        subject: 'Cópia Extra: Prescrição Salva - Pharma Next',
+        html: pharmacyHtml,
+        attachments: [
+          {
+            content: attachPDF,
+            filename: `prescription-${prescription.id}.pdf`,
+            type: 'application/pdf',
+            disposition: 'attachment',
+          },
+        ],
+      }).catch(e => console.error("SendGrid Error (Pharmacy):", e.response?.body || e));
+    }
   }
 
   await prisma.log.create({ data: { event_time: new Date(), message: `Prescreveu para paciente`, user_id: user.userId, patient_id: body.patient_id } })
