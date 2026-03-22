@@ -11,13 +11,29 @@ const { data: profs } = await useAsyncData('profs', () => queryCollection('profe
 
 const states = ref<any[]>([])
 const cities = ref<any[]>([])
+const newPassword = ref('')
 
 const f = ref({ ...user.value })
 
 const selectedProf = computed(() => profs.value?.professionals?.find((p: any) => p.name === f.value.professional_type))
+const selectedSpecialty = computed({
+  get: () => f.value.specialties?.[0] ?? '',
+  set: (value: string) => {
+    f.value.specialties = value ? [value] : []
+  }
+})
 
 onMounted(async () => { states.value = await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados') })
 watch(() => f.value.state, async (uf) => { cities.value = uf ? await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`) : [] }, { immediate: true })
+watch(() => f.value.professional_type, () => {
+  if (!selectedProf.value) {
+    f.value.council = ''
+    f.value.specialties = []
+    return
+  }
+  f.value.council = selectedProf.value.council
+  f.value.specialties = []
+})
 
 watch(() => f.value.phone, (value) => {
   const formatted = formatBrazilPhoneInput(value)
@@ -30,8 +46,7 @@ watch(() => f.value.zipcode, (value) => {
 }, { immediate: true })
 
 const normalizeForm = () => ({
-  ...f.value,
-  email: normalizeText(f.value.email),
+  send_email: f.value.send_email,
   full_name: normalizeText(f.value.full_name, { titleCase: true }),
   cpf: normalizeText(f.value.cpf),
   gender: normalizeText(f.value.gender, { titleCase: true }),
@@ -47,6 +62,7 @@ const normalizeForm = () => ({
   complement: normalizeText(f.value.complement, { titleCase: true }),
   city: normalizeText(f.value.city, { titleCase: true }),
   state: normalizeText(f.value.state).toUpperCase(),
+  ...(newPassword.value.trim() ? { password: newPassword.value.trim() } : {}),
 })
 
 async function toggleActive() { await $fetch(`/api/users/admin/${route.params.id}`, { method: 'PATCH', body: {} }); await refresh() }
@@ -70,6 +86,7 @@ async function saveSettings() {
 
   try {
     await $fetch(`/api/users/admin/${route.params.id}`, { method: 'PATCH', body: payload })
+    newPassword.value = ''
     toast.add('Usuário atualizado', 'success')
     await refresh()
   } catch (error: any) {
@@ -90,7 +107,9 @@ async function saveSettings() {
     </div>
     <form @submit.prevent="saveSettings" class="grid-form">
       <div class="section-title">Informações de Acesso</div>
-      <div class="form-group"><label>Email</label><input v-model="f.email" type="email" required /></div>
+      <div class="form-group"><label>Username</label><input v-model="f.username" disabled /></div>
+      <div class="form-group"><label>Email</label><input v-model="f.email" type="email" disabled /></div>
+      <div class="form-group"><label>Nova Senha (opcional)</label><input v-model="newPassword" type="password" autocomplete="new-password" placeholder="Min. 8 caracteres com letras e números" /></div>
       <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.5rem"><label style="display:flex;align-items:center;gap:0.5rem;margin:0"><input type="checkbox" v-model="f.send_email" /> Receber E-mails</label></div>
       
       <div class="section-title">Informações Pessoais</div>
@@ -116,9 +135,10 @@ async function saveSettings() {
 
       <div class="form-group" style="grid-column: 1 / -1" v-if="selectedProf">
         <label>Especialidades</label>
-        <div style="display:flex;gap:1rem;flex-wrap:wrap">
-          <label v-for="spec in selectedProf.specialties" :key="spec"><input type="checkbox" :value="spec" v-model="f.specialties"/> {{spec}}</label>
-        </div>
+        <select v-model="selectedSpecialty">
+          <option value="" disabled>Selecione uma especialidade</option>
+          <option v-for="spec in selectedProf.specialties" :key="spec" :value="spec">{{ spec }}</option>
+        </select>
       </div>
 
       <div class="section-title">Endereço Profissional</div>

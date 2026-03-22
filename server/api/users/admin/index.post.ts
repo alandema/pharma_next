@@ -1,4 +1,8 @@
 import bcrypt from "bcryptjs";
+import jwt from 'jsonwebtoken';
+import sgMail from '@sendgrid/mail';
+import fs from 'node:fs';
+import path from 'node:path';
 import { validateCredentials } from '../../../utils/credentials';
 import {
   normalizeBirthDate,
@@ -9,6 +13,7 @@ import {
 } from '../../../utils/inputNormalization';
 
 export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
   const body = await readBody(event)
 
 
@@ -73,11 +78,29 @@ export default defineEventHandler(async (event) => {
   }
 
   const hash = await bcrypt.hash(password, 10);
+  const activationSecret = config.activationTokenSecret || process.env.JWT_SECRET
+  if (!activationSecret) {
+    throw createError({ statusCode: 500, statusMessage: 'ACTIVATION token secret não configurado' })
+  }
+
+  const activationBaseUrl = config.activationBaseUrl || process.env.ACTIVATION_BASE_URL
+  if (!activationBaseUrl) {
+    throw createError({ statusCode: 500, statusMessage: 'ACTIVATION base URL não configurada' })
+  }
+
+  const sendgridApiKey = process.env.SENDGRID_API_KEY
+  if (!sendgridApiKey) {
+    throw createError({ statusCode: 500, statusMessage: 'SENDGRID_API_KEY é obrigatório para ativação de conta' })
+  }
+  sgMail.setApiKey(sendgridApiKey)
+
+  
   const user = await prisma.user.create({
     data: {
       username: normalizedUsername,
       password_hash: hash,
       role: 'user',
+      is_active: false,
       email: normalizedData.email,
       send_email: normalizedData.send_email,
       full_name: normalizedData.full_name,
@@ -99,11 +122,55 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  console.log('User created:', normalizedUsername, 'role:', 'user');
+  const activationToken = jwt.sign(
+    {
+      userId: user.id,
+      username: user.username,
+      purpose: 'account-activation',
+    },
+    activationSecret,
+    { expiresIn: '24h' }
+  )
+
+  const normalizedBaseUrl = activationBaseUrl.replace(/\/$/, '')
+  const activationLink = `${normalizedBaseUrl}/api/auth/activate?token=${encodeURIComponent(activationToken)}`
+  const activationEmail = user.email ?? normalizedData.email
+  const activationName = user.full_name ?? normalizedData.full_name ?? normalizedUsername
+
+  if (!activationEmail || !activationName) {
+    throw createError({ statusCode: 500, statusMessage: 'Dados de ativação inválidos' })
+  }
+
+  try {
+    await sendActivationEmail(activationEmail, activationName, activationLink)
+  } catch (error) {
+    console.error('Erro ao enviar e-mail de ativação:', error)
+    try {
+      await prisma.user.delete({ where: { id: user.id } })
+    } catch (deleteError) {
+      console.error('Falha ao reverter usuário após erro de e-mail:', deleteError)
+    }
+    throw createError({ statusCode: 500, statusMessage: 'Não foi possível enviar e-mail de ativação. Tente novamente.' })
+  }
   
   return {
     success: true,
-    message: 'User created successfully',
+    message: 'Usuário criado em estado inativo. E-mail de ativação enviado.',
     userId: user.id
   };
 })
+
+async function sendActivationEmail(email: string, fullName: string, activationLink: string) {
+  const templatePath = path.resolve(process.cwd(), 'server/templates/account_activation.html')
+  let html = fs.readFileSync(templatePath, 'utf-8')
+
+  html = html
+    .replace('{{fullName}}', fullName)
+    .replace('{{activationLink}}', activationLink)
+
+  await sgMail.send({
+    to: email,
+    from: 'plataforma@ammafarmacia.com.br',
+    html,
+  })
+}

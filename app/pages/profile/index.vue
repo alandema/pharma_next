@@ -29,7 +29,7 @@ watch(() => form.value.zipcode, (value) => {
 }, { immediate: true })
 
 const normalizeForm = () => ({
-  ...form.value,
+  send_email: form.value.send_email,
   full_name: normalizeText(form.value.full_name, { titleCase: true }),
   gender: normalizeText(form.value.gender, { titleCase: true }),
   birth_date: normalizeText(form.value.birth_date),

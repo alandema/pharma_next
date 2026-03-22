@@ -17,12 +17,13 @@ const {data: users}  = await useFetch('/api/users/admin',
     <template v-if="users?.length">
       <table class="list-table">
         <thead>
-          <tr><th>Usuário</th><th>Papel</th></tr>
+          <tr><th>Nome</th><th>Privilégio</th><th>Status</th></tr>
         </thead>
         <tbody>
           <tr v-for="user in users" :key="user.id" @click="navigateTo(`/admin/users/${user.id}`)">
-            <td>{{ user.username }}</td>
+            <td>{{ user.full_name }}</td>
             <td style="text-align:right"><span :class="['badge', user.role === 'admin' || user.role === 'superadmin' ? 'badge-admin' : 'badge-user']">{{ user.role }}</span></td>
+            <td style="text-align:center"><span :class="['badge', user.is_active ? 'badge-active' : 'badge-inactive']">{{ user.is_active ? 'Ativo' : 'Inativo' }}</span></td>
           </tr>
         </tbody>
       </table>

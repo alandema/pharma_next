@@ -9,9 +9,6 @@ import {
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
   const body = await readBody(event);
-  
-  // Strip disabled fields to prevent overriding
-  const { cpf, email, password, specialties, council, council_number, council_state, role, is_active, id, ...allowedUpdates } = body;
 
   const currentUser = await prisma.user.findUnique({
     where: { id: user.userId },
@@ -25,17 +22,17 @@ export default defineEventHandler(async (event) => {
   const updateData: any = {}
 
   try {
-    if ('full_name' in allowedUpdates) updateData.full_name = normalizeText(allowedUpdates.full_name, { titleCase: true })
-    if ('gender' in allowedUpdates) updateData.gender = normalizeText(allowedUpdates.gender, { titleCase: true })
-    if ('birth_date' in allowedUpdates) updateData.birth_date = normalizeBirthDate(allowedUpdates.birth_date)
-    if ('phone' in allowedUpdates) updateData.phone = normalizeBrazilPhone(allowedUpdates.phone)
-    if ('professional_type' in allowedUpdates) updateData.professional_type = normalizeText(allowedUpdates.professional_type, { titleCase: true })
-    if ('zipcode' in allowedUpdates) updateData.zipcode = normalizeBrazilCep(allowedUpdates.zipcode, true)
-    if ('street' in allowedUpdates) updateData.street = normalizeText(allowedUpdates.street, { titleCase: true })
-    if ('address_number' in allowedUpdates) updateData.address_number = normalizeText(allowedUpdates.address_number)
-    if ('complement' in allowedUpdates) updateData.complement = normalizeText(allowedUpdates.complement, { titleCase: true })
-    if ('city' in allowedUpdates) updateData.city = normalizeText(allowedUpdates.city, { titleCase: true })
-    if ('state' in allowedUpdates) updateData.state = normalizeText(allowedUpdates.state)?.toUpperCase() ?? null
+    if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
+    if ('gender' in body) updateData.gender = normalizeText(body.gender, { titleCase: true })
+    if ('birth_date' in body) updateData.birth_date = normalizeBirthDate(body.birth_date)
+    if ('phone' in body) updateData.phone = normalizeBrazilPhone(body.phone)
+    if ('professional_type' in body) updateData.professional_type = normalizeText(body.professional_type, { titleCase: true })
+    if ('zipcode' in body) updateData.zipcode = normalizeBrazilCep(body.zipcode, true)
+    if ('street' in body) updateData.street = normalizeText(body.street, { titleCase: true })
+    if ('address_number' in body) updateData.address_number = normalizeText(body.address_number)
+    if ('complement' in body) updateData.complement = normalizeText(body.complement, { titleCase: true })
+    if ('city' in body) updateData.city = normalizeText(body.city, { titleCase: true })
+    if ('state' in body) updateData.state = normalizeText(body.state)?.toUpperCase() ?? null
     if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
   } catch (error: any) {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })

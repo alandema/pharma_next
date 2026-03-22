@@ -3,6 +3,11 @@ import { fileURLToPath } from 'url'
 export default defineNuxtConfig({
   modules: ['@nuxt/content'],
 
+  runtimeConfig: {
+    activationTokenSecret: '',
+    activationBaseUrl: '',
+  },
+
   css: ['~/assets/css/main.css'],
 
   alias: {

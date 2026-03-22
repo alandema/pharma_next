@@ -90,7 +90,7 @@ const submit = async () => {
 
   try {
     await $fetch('/api/users/admin', { method: 'POST', body: payload })
-    addToast('Usuário criado com sucesso!', 'success')
+    addToast('Usuário criado como inativo. Um e-mail de ativação foi enviado.', 'success')
     navigateTo('/admin/users')
   } catch (error: any) {
     addToast(error.data?.message || 'Erro', 'error')

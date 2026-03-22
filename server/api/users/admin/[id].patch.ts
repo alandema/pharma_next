@@ -1,3 +1,5 @@
+import bcrypt from 'bcryptjs';
+import { validateCredentials } from '../../../utils/credentials';
 import {
   normalizeBirthDate,
   normalizeBrazilCep,
@@ -13,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
   })
 
-  const user = await prisma.user.findUnique({ where: { id }, select: { is_active: true, email: true, zipcode: true, send_email: true } })
+  const user = await prisma.user.findUnique({ where: { id }, select: { is_active: true, username: true, email: true, zipcode: true, send_email: true } })
   if (!user) throw createError({ statusCode: 404, statusMessage: 'User not found' })
 
   if (Object.keys(body).length === 0) {
@@ -27,7 +29,16 @@ export default defineEventHandler(async (event) => {
   const updateData: any = {}
 
   try {
-    if ('email' in body) updateData.email = normalizeText(body.email)
+    if ('password' in body) {
+      const normalizedPassword = normalizeText(body.password)
+      if (normalizedPassword) {
+        const passwordError = validateCredentials(user.username, normalizedPassword)
+        if (passwordError) {
+          throw createError({ statusCode: 400, statusMessage: passwordError })
+        }
+        updateData.password_hash = await bcrypt.hash(normalizedPassword, 10)
+      }
+    }
     if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
     if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
     if ('cpf' in body) updateData.cpf = normalizeText(body.cpf)
@@ -49,7 +60,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
   }
 
-  const finalEmail = 'email' in updateData ? updateData.email : user.email
+  const finalEmail = user.email
   const finalSendEmail = 'send_email' in updateData ? updateData.send_email : user.send_email
   const finalZipcode = 'zipcode' in updateData ? updateData.zipcode : user.zipcode
 

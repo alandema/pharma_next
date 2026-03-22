@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!existing.is_active) {
-    throw createError({ statusCode: 403, statusMessage: 'A conta está desativada' });
+    throw createError({ statusCode: 403, statusMessage: 'Conta inativa. Ative a conta pelo link enviado no e-mail.' });
   }
 
   const token = jwt.sign(

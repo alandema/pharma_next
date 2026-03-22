@@ -9,6 +9,7 @@ export default defineEventHandler((event) => {
   // Define public routes that don't require authentication
   const publicRoutes = [
     '/api/auth/login',
+    '/api/auth/activate',
     '/auth/login',
     '/_nuxt/',  // Nuxt internal assets
     '/css/',
