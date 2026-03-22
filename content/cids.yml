@@ -53,3 +53,6 @@ codes:
   - id: 17
     code: E03.9
     name: Hipotireoidismo não especificado
+  - id: 18
+    code: K05
+    name: Gengivite e doenças periodontais

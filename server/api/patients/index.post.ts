@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     normalizedData = {
       name: normalizeText(body.name, { titleCase: true }),
       email: normalizeText(body.email),
-      send_email: normalizeBoolean(body.send_email, true),
+      send_email: normalizeBoolean(body.send_email),
       rg: normalizeText(body.rg),
       gender: normalizeText(body.gender, { titleCase: true }),
       cpf: normalizeText(body.cpf),

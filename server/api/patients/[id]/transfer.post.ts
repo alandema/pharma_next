@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
 
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'superadmin') {
     throw createError({
       statusCode: 403,
       statusMessage: 'Forbidden: only admins can transfer patients',
@@ -19,16 +19,16 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Verify the target prescritor exists and has role 'prescritor'
+  // Verify the target user exists and has role 'user'
   const targetPrescritor = await prisma.user.findUnique({
     where: { id: prescritor_id },
     select: { id: true, username: true, role: true },
   });
 
-  if (!targetPrescritor || targetPrescritor.role !== 'prescritor') {
+  if (!targetPrescritor || targetPrescritor.role !== 'user') {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Target prescritor not found or is not a prescritor',
+      statusMessage: 'Target user not found or is not a user',
     });
   }
 

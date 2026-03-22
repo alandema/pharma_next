@@ -10,7 +10,7 @@ import {
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
   const where: any = { id: event.context.params?.id };
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'superadmin') {
     where.registered_by = user.userId;
   }
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     normalizedData = {
       name: normalizeText(body.name, { titleCase: true }),
       email: normalizeText(body.email),
-      send_email: normalizeBoolean(body.send_email, true),
+      send_email: normalizeBoolean(body.send_email),
       rg: normalizeText(body.rg),
       gender: normalizeText(body.gender, { titleCase: true }),
       cpf: normalizeText(body.cpf),

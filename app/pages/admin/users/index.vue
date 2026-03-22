@@ -22,7 +22,7 @@ const {data: users}  = await useFetch('/api/users/admin',
         <tbody>
           <tr v-for="user in users" :key="user.id" @click="navigateTo(`/admin/users/${user.id}`)">
             <td>{{ user.username }}</td>
-            <td style="text-align:right"><span :class="['badge', user.role === 'admin' ? 'badge-admin' : 'badge-user']">{{ user.role }}</span></td>
+            <td style="text-align:right"><span :class="['badge', user.role === 'admin' || user.role === 'superadmin' ? 'badge-admin' : 'badge-user']">{{ user.role }}</span></td>
           </tr>
         </tbody>
       </table>

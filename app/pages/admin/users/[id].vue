@@ -13,8 +13,6 @@ const states = ref<any[]>([])
 const cities = ref<any[]>([])
 
 const f = ref({ ...user.value })
-if (f.value.birth_date) f.value.birth_date = f.value.birth_date.split('T')[0]
-if (!f.value.specialties) f.value.specialties = []
 
 const selectedProf = computed(() => profs.value?.professionals?.find((p: any) => p.name === f.value.professional_type))
 
@@ -75,7 +73,7 @@ async function saveSettings() {
     toast.add('Usuário atualizado', 'success')
     await refresh()
   } catch (error: any) {
-    toast.add(error?.data?.message || 'Erro ao atualizar usuário', 'error')
+    toast.add(error?.data?.message ?? 'Erro ao atualizar usuário', 'error')
   }
 }
 </script>

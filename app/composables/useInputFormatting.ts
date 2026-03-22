@@ -52,7 +52,7 @@ export const useInputFormatting = () => {
 
   const isBrazilCountry = (value: unknown) => {
     const normalized = removeDiacritics(normalizeText(value)).toLowerCase()
-    return normalized === 'brasil' || normalized === 'brazil' || normalized === 'br'
+    return normalized === 'brasil'
   }
 
   const isValidBirthDate = (value: unknown) => {

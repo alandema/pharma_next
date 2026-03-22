@@ -9,7 +9,9 @@ import {
 export default defineEventHandler(async (event) => {
   const id = event.context.params?.id
 
-  const body = await readBody(event).catch(() => ({}))
+  const body = await readBody(event).catch(() => {
+    throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
+  })
 
   const user = await prisma.user.findUnique({ where: { id }, select: { is_active: true, email: true, zipcode: true, send_email: true } })
   if (!user) throw createError({ statusCode: 404, statusMessage: 'User not found' })
@@ -26,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     if ('email' in body) updateData.email = normalizeText(body.email)
-    if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email, true)
+    if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
     if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
     if ('cpf' in body) updateData.cpf = normalizeText(body.cpf)
     if ('gender' in body) updateData.gender = normalizeText(body.gender, { titleCase: true })

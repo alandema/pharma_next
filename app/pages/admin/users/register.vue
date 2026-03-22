@@ -2,7 +2,8 @@
 import { useInputFormatting } from '../../../composables/useInputFormatting'
 
 const f = ref({
-  username: '', password: '', email: '', role: 'prescritor',
+  username: '', password: '', email: '',
+  send_email: true,
   full_name: '', cpf: '', gender: '', birth_date: '', phone: '',
   professional_type: '', council: '', council_number: '', council_state: '', specialties: [] as string[],
   zipcode: '', street: '', address_number: '', complement: '', city: '', state: ''
@@ -18,14 +19,19 @@ const cities = ref<any[]>([])
 
 const selectedProf = computed(() => profs.value?.professionals?.find((p: any) => p.name === f.value.professional_type))
 const selectedSpecialty = computed({
-  get: () => f.value.specialties[0] || '',
+  get: () => f.value.specialties[0] ?? '',
   set: (value: string) => {
     f.value.specialties = value ? [value] : []
   }
 })
 
 watch(() => f.value.professional_type, () => {
-  f.value.council = selectedProf.value?.council || ''
+  if (!selectedProf.value) {
+    f.value.council = ''
+    f.value.specialties = []
+    return
+  }
+  f.value.council = selectedProf.value.council
   f.value.specialties = []
 })
 
@@ -103,6 +109,7 @@ const submit = async () => {
       <div class="form-group"><label>Usuário Na Plataforma *</label><input v-model="f.username" required /></div>
       <div class="form-group"><label>Senha *</label><input v-model="f.password" type="password" required /></div>
       <div class="form-group"><label>Email *</label><input v-model="f.email" type="email" required /></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;margin-top:1.5rem"><input type="checkbox" id="se_admin_register" v-model="f.send_email" /><label for="se_admin_register" style="margin:0">Receber e-mails de cópia das prescrições</label></div>
       
       <div class="section-title">Informações Pessoais</div>
       <div class="form-group"><label>Nome Completo *</label><input v-model="f.full_name" required /></div>

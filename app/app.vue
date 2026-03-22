@@ -9,7 +9,7 @@
         <div class="logo">
           <img src="/header.png" alt="amma" />
         </div>
-        <span class="nav-home" @click="navigateTo(user.role === 'admin' ? '/admin' : '/')">Início</span>
+        <span class="nav-home" @click="navigateTo(isAdminRole(user.role) ? '/admin' : '/')">Início</span>
       </div>
       <div class="nav-actions">
         <span class="text-muted" style="font-size:.8rem; cursor:pointer;" @click="navigateTo('/profile')">{{ user.username }}</span>
@@ -31,6 +31,8 @@
 
 <script setup lang="ts">
 interface User { userId: number; username: string; role: string }
+
+const isAdminRole = (role?: string) => role === 'admin' || role === 'superadmin'
 
 const { brand } = useAppConfig()
 useHead({ title: brand.name })

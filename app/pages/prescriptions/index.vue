@@ -5,7 +5,10 @@ type Prescription = {
   patient_id: string;
   prescribed_by: string | null;
   date_prescribed: string;
-  json_form_info: Record<string, unknown> | string;
+  json_form_info: {
+    cid_code: string;
+    formulas: { formula_id: string; formula_name: string; description: string }[];
+  };
   created_at: string;
   patient: {
     id: string;
@@ -35,7 +38,10 @@ const startDate = ref('');
 const endDate = ref('');
 
 const { data: me } = await useFetch('/api/users/me')
-const isAdmin = computed(() => (me.value as any)?.role === 'admin')
+const isAdmin = computed(() => {
+  const role = (me.value as any)?.role
+  return role === 'admin' || role === 'superadmin'
+})
 
 const { data: patients } = await useFetch<Patient[]>('/api/patients', {
   method: 'GET',

@@ -1,6 +1,15 @@
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
-  const page = parseInt(query.page as string) || 1;
+  const pageRaw = query.page;
+  if (typeof pageRaw !== 'string') {
+    throw createError({ statusCode: 400, statusMessage: 'Parâmetro page é obrigatório.' });
+  }
+
+  const page = Number.parseInt(pageRaw, 10);
+  if (!Number.isInteger(page) || page < 1) {
+    throw createError({ statusCode: 400, statusMessage: 'Parâmetro page inválido.' });
+  }
+
   const limit = 10;
   const skip = (page - 1) * limit;
   const patientId = query.patientId as string | undefined;
@@ -15,7 +24,7 @@ export default defineEventHandler(async (event) => {
   const where = {
     ...(patientId ? { patient_id: patientId } : {}),
     ...(startDate || endDate ? { date_prescribed: datePrescribed } : {}),
-    ...(user.role !== 'admin' ? { prescribed_by: user.userId } : {})
+    ...(user.role !== 'admin' && user.role !== 'superadmin' ? { prescribed_by: user.userId } : {})
   };
 
   const [prescriptions, total] = await Promise.all([

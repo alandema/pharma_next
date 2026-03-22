@@ -3,12 +3,25 @@ import { put } from '@vercel/blob';
 import fs from 'node:fs';
 import path from 'node:path';
 
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
-
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
+
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  if (!sendgridApiKey) {
+    throw createError({ statusCode: 500, statusMessage: 'SENDGRID_API_KEY é obrigatório para criar prescrições.' });
+  }
+
+  const alwaysSendEmailsRaw = process.env.ALWAYS_SEND_EMAILS;
+  if (alwaysSendEmailsRaw === undefined) {
+    throw createError({ statusCode: 500, statusMessage: 'ALWAYS_SEND_EMAILS é obrigatório para criar prescrições.' });
+  }
+
+  const alwaysSendEmails = alwaysSendEmailsRaw
+    .split(',')
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0);
+
+  sgMail.setApiKey(sendgridApiKey);
 
   const body = await readBody<{
     patient_id?: string;
@@ -16,7 +29,11 @@ export default defineEventHandler(async (event) => {
     formulas?: { formula_id?: string; description?: string }[];
   }>(event);
 
-  const formulaItems = Array.isArray(body.formulas) ? body.formulas : [];
+  if (!Array.isArray(body.formulas)) {
+    throw createError({ statusCode: 400, statusMessage: 'Fórmulas devem ser enviadas como array.' });
+  }
+
+  const formulaItems = body.formulas;
 
   if (!body.patient_id) {
     throw createError({ statusCode: 400, statusMessage: 'Paciente é obrigatório.' });
@@ -35,7 +52,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const hasInvalidFormulaItem = formulaItems.some((item: { formula_id?: string; description?: string }) =>
-    !item?.formula_id || !String(item.description || '').trim()
+    typeof item?.formula_id !== 'string' || item.formula_id.trim().length === 0 || typeof item.description !== 'string' || item.description.trim().length === 0
   );
 
   if (hasInvalidFormulaItem) {
@@ -43,8 +60,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const normalizedFormulaItems = formulaItems.map((item: { formula_id?: string; description?: string }) => ({
-    formula_id: String(item.formula_id),
-    description: String(item.description).trim(),
+    formula_id: item.formula_id!.trim(),
+    description: item.description!.trim(),
   }));
 
   const dbFormulaIds = Array.from(new Set(normalizedFormulaItems.filter(item => item.formula_id !== 'free').map((item) => item.formula_id)));
@@ -63,14 +80,14 @@ export default defineEventHandler(async (event) => {
 
   const formulaMap = new Map([
     ...formulas.map((formula) => [formula.id, formula.name] as [string, string]),
-    ['free', '']
+    ['free', ''] as [string, string]
   ]);
 
   const formInfo = {
     cid_code: body.cid_code,
     formulas: normalizedFormulaItems.map((item) => ({
       formula_id: item.formula_id,
-      formula_name: formulaMap.get(item.formula_id) || '',
+      formula_name: formulaMap.get(item.formula_id)!,
       description: item.description,
     })),
   };
@@ -100,19 +117,15 @@ export default defineEventHandler(async (event) => {
       data: { pdf_url: blob.url }
     });
 
-    if (process.env.SENDGRID_API_KEY) {
-
-      if (patient.email && patient.send_email) {
-        await sendPatientEmail(patient.email, patient.name, prescriber.username, blob.url);
-      }
-
-      if (prescriber.email && prescriber.send_email) {
-        await sendPrescriberEmail(prescriber.email, prescriber.username, patient.name, blob.url);
-      }
-
-      await sendPharmacyEmail(patient.name, blob.url);
-
+    if (patient.email && patient.send_email) {
+      await sendPatientEmail(patient.email, patient.name, prescriber.username, blob.url);
     }
+
+    if (prescriber.email && prescriber.send_email) {
+      await sendPrescriberEmail(prescriber.email, prescriber.username, patient.name, blob.url);
+    }
+
+    await sendPharmacyEmail(patient.name, blob.url, alwaysSendEmails);
   }
 
   await prisma.log.create({ data: { event_time: new Date(), message: `Prescreveu para paciente`, user_id: user.userId, patient_id: body.patient_id } })
@@ -125,20 +138,19 @@ export default defineEventHandler(async (event) => {
 });
 
 
-async function sendPharmacyEmail(patientName: string, pdfUrl: string) {
+async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSendEmails: string[]) {
       const date = new Date().toISOString().slice(0, 10);
       const pharmacyTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_pharmacy.html');
       let pharmacyHtml = fs.readFileSync(pharmacyTemplatePath, 'utf-8');
       pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patientName)
                                  .replace('{{pdfUrl}}', pdfUrl);
-      const emailsToSend = (process.env.ALWAYS_SEND_EMAILS || '').split(',').map(email => email.trim()).filter(email => email);
-      for (const email of emailsToSend) {
+      for (const email of alwaysSendEmails) {
         await sgMail.send({
           to: email,
           from: 'plataforma@ammafarmacia.com.br',
           subject: `${patientName} - ${date} - Nova Prescrição Salva`,
           html: pharmacyHtml,
-        }).catch(e => console.error("SendGrid Error (Pharmacy):", e.response?.body || e));
+        });
       }
 }
 
@@ -153,7 +165,7 @@ async function sendPrescriberEmail(prescriberEmail: string, prescriberName: stri
           from: 'plataforma@ammafarmacia.com.br', 
           subject: `Prescrição gerada para - ${patientName}`,
           html: doctorHtml,
-        }).catch(e => console.error("SendGrid Error (Doctor):", e.response?.body || e));
+        });
 }
 
 async function sendPatientEmail(patientEmail: string, patientName: string, prescriberName: string, pdfUrl: string) {
@@ -169,5 +181,5 @@ async function sendPatientEmail(patientEmail: string, patientName: string, presc
           from: 'plataforma@ammafarmacia.com.br', 
           subject: 'Sua Nova Prescrição - Pharma Next',
           html: patientHtml,
-        }).catch(e => console.error("SendGrid Error (Patient):", e.response?.body || e));
+        });
       }

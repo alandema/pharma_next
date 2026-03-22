@@ -14,14 +14,16 @@ export const normalizeText = (value: unknown, options?: { titleCase?: boolean })
   return options?.titleCase ? toTitleCase(compact) : compact
 }
 
-export const normalizeBoolean = (value: unknown, defaultValue = true) => {
-  if (typeof value === 'boolean') return value
-  return defaultValue
+export const normalizeBoolean = (value: unknown) => {
+  if (typeof value !== 'boolean') {
+    throw new Error('Valor booleano inválido')
+  }
+  return value
 }
 
 export const isBrazilCountry = (value: unknown) => {
   const normalized = removeDiacritics(String(value ?? '').trim().toLowerCase())
-  return normalized === 'brasil' || normalized === 'brazil' || normalized === 'br'
+  return normalized === 'brasil'
 }
 
 export const normalizeBrazilPhone = (value: unknown, required = false) => {

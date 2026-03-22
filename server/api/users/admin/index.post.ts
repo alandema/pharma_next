@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
 
-  const { username, password, role = 'prescritor', email, full_name, cpf, gender, birth_date, phone, professional_type, council, council_number, council_state, specialties, zipcode, street, address_number, complement, city, state } = body;
+  const { username, password, email, full_name, cpf, gender, birth_date, phone, professional_type, council, council_number, council_state, specialties, zipcode, street, address_number, complement, city, state } = body;
   const normalizedUsername = typeof username === 'string' ? username.trim() : username
 
   const errorMessage = validateCredentials(normalizedUsername, password)
@@ -25,15 +25,12 @@ export default defineEventHandler(async (event) => {
       statusMessage: errorMessage
     });
   }
-  if (role !== 'prescritor' && role !== 'admin') {
-    throw createError({ statusCode: 400, statusMessage: 'Função inválida' })
-  }
 
   let normalizedData: any
   try {
     normalizedData = {
       email: normalizeText(email),
-      send_email: normalizeBoolean(body.send_email, true),
+      send_email: normalizeBoolean(body.send_email),
       full_name: normalizeText(full_name, { titleCase: true }),
       cpf: normalizeText(cpf),
       gender: normalizeText(gender, { titleCase: true }),
@@ -80,7 +77,7 @@ export default defineEventHandler(async (event) => {
     data: {
       username: normalizedUsername,
       password_hash: hash,
-      role,
+      role: 'user',
       email: normalizedData.email,
       send_email: normalizedData.send_email,
       full_name: normalizedData.full_name,
@@ -102,7 +99,7 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  console.log('User created:', normalizedUsername, 'role:', role);
+  console.log('User created:', normalizedUsername, 'role:', 'user');
   
   return {
     success: true,

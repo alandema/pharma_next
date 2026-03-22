@@ -5,6 +5,7 @@ type PrescriptionFormulaInput = { formula_id: string; description: string };
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const route = useRoute();
+const toast = useToast();
 const patient_id = ref((route.query.patient_id as string) || '');
 const date_prescribed = ref(getTodayDate());
 const cid_code = ref((route.query.cid_code as string) || '');
@@ -22,26 +23,27 @@ const cids = computed(() => {
   return [...codes].sort((a, b) => a.name.localeCompare(b.name));
 });
 
-// If the prepopulated cid_code is not empty, not 'Outro', and not in the list of CIDs, it means it's a manual CID from reuse.
-if (cid_code.value && cid_code.value !== 'Outro' && !cids.value.some(c => c.code === cid_code.value)) {
-  manual_cid.value = cid_code.value;
-  cid_code.value = 'Outro';
-}
-
 const parseFormulasFromQuery = () => {
   const formulasQuery = route.query.formulas as string | undefined;
   if (!formulasQuery) return;
-  try {
-    const parsed = JSON.parse(formulasQuery);
-    if (Array.isArray(parsed)) {
-      formulasInput.value = parsed
-        .slice(0, 10)
-        .map((item: { formula_id?: string; description?: string }) => ({
-          formula_id: item.formula_id || '',
-          description: item.description || '',
-        }));
-    }
-  } catch {}
+  const parsed = JSON.parse(formulasQuery);
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('Parâmetro formulas inválido.');
+  }
+
+  formulasInput.value = parsed
+    .slice(0, 10)
+    .map((item: { formula_id?: string; description?: string }) => {
+      if (typeof item.formula_id !== 'string' || typeof item.description !== 'string') {
+        throw new Error('Formato de fórmula inválido na URL.');
+      }
+
+      return {
+        formula_id: item.formula_id,
+        description: item.description,
+      };
+    });
 };
 
 const addFormula = () => {
@@ -51,6 +53,23 @@ const addFormula = () => {
 
 const removeFormula = (index: number) => {
   formulasInput.value.splice(index, 1);
+};
+
+const updateFormulaDescription = (item: PrescriptionFormulaInput) => {
+  if (item.formula_id === 'free') {
+    item.description = '';
+    return;
+  }
+
+  const selected = formulas.value?.find((formula) => formula.id === item.formula_id);
+  if (!selected || typeof selected.information !== 'string') {
+    item.formula_id = '';
+    item.description = '';
+    toast.add('Fórmula inválida: informação obrigatória não encontrada.', 'error');
+    return;
+  }
+
+  item.description = selected.information;
 };
 
 const submit = async () => {
@@ -108,7 +127,7 @@ if (!formulasInput.value.length) addFormula();
           <div class="form-row">
             <div class="form-group" style="flex: 1;">
               <label>Fórmula {{ index + 1 }} *</label>
-              <select v-model="item.formula_id" @change="item.description = (item.formula_id === 'free' ? '' : (formulas?.find(f => f.id === item.formula_id)?.information || ''))" required>
+              <select v-model="item.formula_id" @change="updateFormulaDescription(item)" required>
                 <option value="" disabled>Selecione uma fórmula</option>
                 <option value="free">*Personalizada*</option>
                 <option v-for="formula in formulas" :key="formula.id" :value="formula.id">{{ formula.name }}</option>

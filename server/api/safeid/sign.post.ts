@@ -6,6 +6,22 @@ export default defineEventHandler(async (event) => {
   const clientSecret = process.env.SAFEID_CLIENT_SECRET
   const redirectUri = process.env.SAFEID_REDIRECT_URI
 
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw createError({ statusCode: 500, statusMessage: 'Configuração SafeID incompleta.' })
+  }
+
+  if (typeof doctorCpf !== 'string' || doctorCpf.trim().length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'CPF do prescritor é obrigatório.' })
+  }
+
+  if (typeof doctorPassword !== 'string' || doctorPassword.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Senha do prescritor é obrigatória.' })
+  }
+
+  if (typeof base64Pdf !== 'string' || base64Pdf.length === 0) {
+    throw createError({ statusCode: 400, statusMessage: 'Conteúdo PDF é obrigatório.' })
+  }
+
   try {
     // 1. Get identifierCA
     const authCaRes = await $fetch<any>('https://pscsafeweb.safewebpss.com.br/Service/Microservice/OAuth/api/v0/oauth/authorize-ca', {
@@ -62,6 +78,6 @@ export default defineEventHandler(async (event) => {
 
   } catch (error) {
     console.error("Signature Error:", error)
-    return createError({ statusCode: 500, message: 'Failed to sign document' })
+    throw createError({ statusCode: 500, statusMessage: 'Falha ao assinar documento' })
   }
 })

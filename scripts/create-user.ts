@@ -9,7 +9,7 @@ export const prisma = new PrismaClient({ adapter })
 const args = process.argv.slice(2);
 const params: Record<string, string> = {};
 
-// Parse flag style: --username alice --password secret --role prescritor
+// Parse flag style: --username alice --password secret --role admin|superadmin
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a.startsWith('--')) {
@@ -25,9 +25,13 @@ for (let i = 0; i < args.length; i++) {
 }
 
 async function main() {
-  const { username, password} = params;
+  const { username, password } = params;
+  const role = params.role || 'admin';
   if (!username || !password) { 
     console.error('Missing --username or --password'); process.exit(1);
+  }
+  if (role !== 'admin' && role !== 'superadmin') {
+    console.error('Invalid --role. Allowed values: admin, superadmin'); process.exit(1);
   }
 
   const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } });
@@ -38,11 +42,11 @@ async function main() {
     data: {
       username,
       password_hash: hash,
-      role: 'admin',
+      role,
     },
   });
 
-  console.log('User created:', username, 'role:', 'admin');
+  console.log('User created:', username, 'role:', role);
   await prisma.$disconnect();
 }
 main();

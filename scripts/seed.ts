@@ -9,7 +9,7 @@ const prisma = new PrismaClient({ adapter })
 type SeedUser = {
   username: string;
   password: string;
-  role: 'admin' | 'prescritor';
+  role: 'admin' | 'user' | 'superadmin';
   email: string;
   send_email: boolean;
   is_active: boolean;
@@ -92,7 +92,7 @@ async function main() {
     {
       username: 'doctor1',
       password: 'doctor123',
-      role: 'prescritor',
+      role: 'user',
       email: 'doctor1@pharmanext.test',
       send_email: true,
       is_active: true,
@@ -116,7 +116,7 @@ async function main() {
     {
       username: 'doctor2',
       password: 'doctor123',
-      role: 'prescritor',
+      role: 'user',
       email: 'doctor2@pharmanext.test',
       send_email: false,
       is_active: true,
@@ -339,7 +339,7 @@ async function main() {
   const patientByKey = new Map<string, { id: string; name: string; registered_by: string }>();
   for (const patient of patients) {
     const doctor = userByUsername.get(patient.doctorUsername);
-    if (!doctor || doctor.role !== 'prescritor') {
+    if (!doctor || doctor.role !== 'user') {
       throw new Error(`Doctor ${patient.doctorUsername} not found or invalid role.`);
     }
 
@@ -533,8 +533,8 @@ async function main() {
   console.log('\n✅ Database seeding completed successfully!');
   console.log('\nTest credentials:');
   console.log('  Admin: username=admin, password=admin123');
-  console.log('  Prescritor: username=doctor1, password=doctor123');
-  console.log('  Prescritor: username=doctor2, password=doctor123');
+  console.log('  User: username=doctor1, password=doctor123');
+  console.log('  User: username=doctor2, password=doctor123');
 
   await prisma.$disconnect();
 }

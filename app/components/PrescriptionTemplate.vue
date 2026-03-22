@@ -21,7 +21,7 @@ type User = {
 type Prescription = {
   id: string;
   date_prescribed: string;
-  json_form_info: Record<string, unknown> | string;
+  json_form_info: ParsedPrescriptionInfo;
   patient: Patient;
   user: User;
 };
@@ -39,24 +39,17 @@ type CidEntry = {
 
 const props = defineProps<{
   prescription: Prescription;
-  cids?: CidEntry[];
+  cids: CidEntry[];
 }>();
 
 const formInfo = computed<ParsedPrescriptionInfo>(() => {
-  try {
-    if (typeof props.prescription.json_form_info === 'string') {
-      return JSON.parse(props.prescription.json_form_info);
-    }
-    return props.prescription.json_form_info as ParsedPrescriptionInfo;
-  } catch {
-    return {};
-  }
+  return props.prescription.json_form_info;
 });
 
 const cidCode = computed(() => (formInfo.value.cid_code as string) ?? '');
 
 const cidLabel = computed(() => {
-  const entry = (props.cids ?? []).find((c) => c.code === cidCode.value);
+  const entry = props.cids.find((c) => c.code === cidCode.value);
   return entry ? `${cidCode.value} – ${entry.name}` : cidCode.value;
 });
 
@@ -64,16 +57,11 @@ const detailEntries = computed(() =>
   Object.entries(formInfo.value).filter(([key]) => key !== 'cid_code' && key !== 'formulas')
 );
 
-const formulas = computed(() => formInfo.value.formulas || []);
+const formulas = computed(() => formInfo.value.formulas ?? []);
 
 const formattedDate = computed(() => {
-  const dateStr = props.prescription.date_prescribed;
-  try {
-    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00');
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
+  const d = new Date(`${props.prescription.date_prescribed}T00:00:00`);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 });
 
 const patientAddress = computed(() => {

@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     if ('complement' in allowedUpdates) updateData.complement = normalizeText(allowedUpdates.complement, { titleCase: true })
     if ('city' in allowedUpdates) updateData.city = normalizeText(allowedUpdates.city, { titleCase: true })
     if ('state' in allowedUpdates) updateData.state = normalizeText(allowedUpdates.state)?.toUpperCase() ?? null
-    if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email, true)
+    if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
   } catch (error: any) {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
   }

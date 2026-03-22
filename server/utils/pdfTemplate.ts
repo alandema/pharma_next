@@ -16,7 +16,12 @@ export function generatePDFDocument(body: any, doctorName: string, patientName: 
     doc.text(`Patient: ${patientName}`);
     doc.moveDown();
     
-    const formulas = Array.isArray(body?.formulas) ? body.formulas : [];
+    if (!Array.isArray(body?.formulas)) {
+      reject(new Error('Formato inválido: formulas deve ser um array.'));
+      return;
+    }
+
+    const formulas = body.formulas;
     formulas.forEach((f: any) => {
       if (f.formula_name) {
         doc.text(`- Formula: ${f.formula_name}`);

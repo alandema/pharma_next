@@ -12,8 +12,6 @@ const successMessage = ref('')
 const errorMessage = ref('')
 
 const form = ref({ ...me.value })
-if (form.value.birth_date) form.value.birth_date = form.value.birth_date.split('T')[0]
-if (!form.value.specialties) form.value.specialties = []
 
 const selectedProf = computed(() => profs.value?.professionals?.find((p: any) => p.name === form.value.professional_type))
 
@@ -64,7 +62,7 @@ const save = async () => {
     successMessage.value = 'Configurações atualizadas!'
     await refresh()
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Não foi possível salvar o perfil.'
+    errorMessage.value = error?.data?.message ?? 'Não foi possível salvar o perfil.'
   }
 }
 </script>

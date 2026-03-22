@@ -29,7 +29,7 @@ type Prescription = {
   json_form_info: {
     cid_code?: string;
     formulas?: { formula_id: string; formula_name?: string; description: string }[];
-  } | string;
+  };
   created_at: string;
   patient: Patient;
   user: User | null;
@@ -51,20 +51,15 @@ const openPrintPage = () => {
 };
 
 const formInfo = computed(() => {
-  const value = prescription.value?.json_form_info;
-  if (!value) return {};
-  if (typeof value === 'string') {
-    try { return JSON.parse(value); } catch { return {}; }
-  }
-  return value;
+  return prescription.value?.json_form_info;
 });
 
-const formulas = computed(() => formInfo.value.formulas || []);
+const formulas = computed(() => formInfo.value?.formulas ?? []);
 
 const reuse = () => {
   const q = new URLSearchParams({
     patient_id: prescription.value!.patient_id,
-    cid_code: String(formInfo.value.cid_code || ''),
+    cid_code: String(formInfo.value?.cid_code ?? ''),
     formulas: JSON.stringify(formulas.value.map((item: { formula_id: string; description: string }) => ({
       formula_id: item.formula_id,
       description: item.description,
@@ -105,7 +100,7 @@ const reuse = () => {
 
     <div class="card">
       <h2>Conteúdo da Prescrição</h2>
-      <p v-if="formInfo.cid_code" class="text-muted mb-2">CID: <strong>{{ formInfo.cid_code }}</strong></p>
+      <p v-if="formInfo?.cid_code" class="text-muted mb-2">CID: <strong>{{ formInfo?.cid_code }}</strong></p>
       <table v-if="formulas.length" class="list-table">
         <thead>
           <tr><th>Fórmula</th><th>Descrição</th></tr>

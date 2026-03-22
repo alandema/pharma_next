@@ -56,7 +56,7 @@ export default defineEventHandler((event) => {
   }
 
   if (adminRoutes.some(route => url.pathname.startsWith(route))) {
-    if (decoded.role !== 'admin') {
+    if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
       throw createError({
         statusCode: 403,
         statusMessage: 'Forbidden: Admins only'

@@ -9,7 +9,10 @@ interface Patient {
 
 const { data: patients } = await useFetch<Patient[]>('/api/patients', { method: 'GET' })
 const { data: me } = await useFetch('/api/users/me')
-const isAdmin = computed(() => (me.value as any)?.role === 'admin')
+const isAdmin = computed(() => {
+  const role = (me.value as any)?.role
+  return role === 'admin' || role === 'superadmin'
+})
 </script>
 
 <template>

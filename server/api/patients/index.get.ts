@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
-  const where = user.role === 'admin' ? {} : { registered_by: user.userId };
+  const where = user.role === 'admin' || user.role === 'superadmin' ? {} : { registered_by: user.userId };
 
   const patients = await prisma.patient.findMany({
     where,

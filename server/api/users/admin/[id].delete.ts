@@ -7,6 +7,9 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({ where: { id } })
   if (!user) throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  if (user.role === 'superadmin') {
+    throw createError({ statusCode: 403, statusMessage: 'Cannot delete superadmin account' })
+  }
 
   // Transfer all patients managed by this user to the admin performing the deletion
   await prisma.patient.updateMany({
