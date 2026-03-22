@@ -174,7 +174,7 @@ export default defineEventHandler(async (event) => {
 
 
 async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSendEmails: string[]) {
-      const date = new Date().toISOString().slice(0, 10);
+      const date = new Date().toLocaleDateString('pt-BR');
       const pharmacyTemplatePath = path.resolve(process.cwd(), 'server/templates/prescription_pharmacy.html');
       let pharmacyHtml = fs.readFileSync(pharmacyTemplatePath, 'utf-8');
       pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patientName)
