@@ -7,7 +7,7 @@ const { brand } = useAppConfig()
 
 const handleSubmit = async () => {
   try {
-    const res = await $fetch<{ message: string }>('/api/auth/login', {
+    const res = await $fetch('/api/auth/login', {
       method: 'POST',
       body: { username: username.value, password: password.value },
     })
@@ -15,7 +15,7 @@ const handleSubmit = async () => {
     await refreshNuxtData()
     await navigateTo('/')
   } catch (err: any) {
-    addToast(err.data?.message ?? 'Algo deu errado', 'error')
+    addToast(err.data?.message, 'error')
   }
 }
 </script>

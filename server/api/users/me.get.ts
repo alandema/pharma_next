@@ -4,35 +4,57 @@ import { JwtPayload } from 'jsonwebtoken';
 const config = useRuntimeConfig()
 const JWT_SECRET = config.jwtSecret
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
 
-    console.log('Received request for /api/users/me')
-    // get user info from cookie using prisma
     const token = getCookie(event, 'AccessToken'); // Get the 'token' cookie
 
     if (!token) {
         throw createError({
             statusCode: 401,
-            statusMessage: 'Unauthorized: No token provided'
+            statusMessage: 'Não Autorizado'
         });
     }
 
-    // Verify the token and extract user information
+    let decoded: JwtPayload;
+
     try {
-        const decoded = jwt.verify(token, JWT_SECRET!) as JwtPayload;
-        
-        // Fetch fresh db state
-        return prisma.user.findUnique({
-            where: { id: decoded.userId }
-        }).then(user => {
-            if (!user) return null;
-            const { password_hash, ...safeUser } = user;
-            return safeUser;
-        })
+        decoded = jwt.verify(token, JWT_SECRET!) as JwtPayload;
     } catch (err) {
         throw createError({
             statusCode: 401,
-            statusMessage: 'Unauthorized: Invalid token'
+            statusMessage: 'Não Autorizado'
         });
     }
+
+    const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                full_name: true,
+                cpf: true,
+                gender: true,
+                birth_date: true,
+                phone: true,
+                zipcode: true,
+                street: true,
+                address_number: true,
+                complement: true,
+                city: true,
+                state: true,
+                professional_type: true,
+                council: true,
+                council_number: true,
+                council_state: true,
+                specialties: true,
+                send_email: true
+            }
+        })
+    if (user){
+        if (user.birth_date) {
+            user.birth_date = <any> new Date(user.birth_date).toISOString().split('T')[0]
+        }
+    }
+    return user;
 })

@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     { where: { username },
     select: { id: true, password_hash: true, username: true, role: true, is_active: true }
     });
+
   if (!existing) {
     throw createError({
       statusCode: 401,
@@ -53,8 +54,7 @@ export default defineEventHandler(async (event) => {
     })
 
     return {
-      message: 'Login realizado com sucesso',
-      role: existing.role
+      message: 'Login realizado com sucesso'
     };
 
 })

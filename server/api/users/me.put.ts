@@ -23,10 +23,14 @@ export default defineEventHandler(async (event) => {
 
   try {
     if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
-    if ('gender' in body) updateData.gender = normalizeText(body.gender, { titleCase: true })
+    if ('gender' in body) updateData.gender = body.gender
     if ('birth_date' in body) updateData.birth_date = normalizeBirthDate(body.birth_date)
     if ('phone' in body) updateData.phone = normalizeBrazilPhone(body.phone)
-    if ('professional_type' in body) updateData.professional_type = normalizeText(body.professional_type, { titleCase: true })
+    if ('professional_type' in body) updateData.professional_type = body.professional_type
+    if ('council' in body) updateData.council = body.council
+    if ('council_number' in body) updateData.council_number = normalizeText(body.council_number)
+    if ('council_state' in body) updateData.council_state = body.council_state
+    if ('specialties' in body) updateData.specialties = body.specialties
     if ('zipcode' in body) updateData.zipcode = normalizeBrazilCep(body.zipcode, true)
     if ('street' in body) updateData.street = normalizeText(body.street, { titleCase: true })
     if ('address_number' in body) updateData.address_number = normalizeText(body.address_number)
@@ -38,21 +42,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
   }
 
-  const finalSendEmail = 'send_email' in updateData ? updateData.send_email : currentUser.send_email
-  const finalZipcode = 'zipcode' in updateData ? updateData.zipcode : currentUser.zipcode
-
-  if (finalSendEmail && !currentUser.email) {
-    throw createError({ statusCode: 400, statusMessage: 'E-mail é obrigatório para receber notificações.' })
-  }
-
-  if (!finalZipcode) {
-    throw createError({ statusCode: 400, statusMessage: 'CEP é obrigatório para usuários/profissionais.' })
-  }
-
   const updated = await prisma.user.update({
     where: { id: user.userId },
     data: updateData
   })
 
-  return updated;
+  return {
+    message: 'Perfil atualizado com sucesso',
+  };
 });
