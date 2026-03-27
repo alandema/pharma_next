@@ -111,17 +111,16 @@ a:hover { color: var(--c-text); }
 }
 
 .app-nav .nav-actions .btn-sm {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  border-radius: var(--radius);
+  background: var(--c-dark);
+  color: var(--c-surface);
   padding: .4rem 1rem;
   font-size: .8rem;
   transition: all .2s;
 }
 .app-nav .nav-actions .btn-sm:hover {
   background: #fff;
-  color: var(--c-dark);
+  border-color: var(--c-gold);
+  color: var(--c-gold);
 }
 
 .app-main {
