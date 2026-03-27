@@ -8,7 +8,10 @@ export default defineEventHandler(async (event) => {
   const patient = await prisma.patient.findUnique({
     where,
     include: {
-      prescriptions: true,
+      prescriptions: {
+        orderBy: { date_prescribed: 'desc' },
+        take: 3,
+      },
       user: { select: { id: true, username: true } },
     },
   });

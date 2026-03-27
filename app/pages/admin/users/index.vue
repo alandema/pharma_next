@@ -1,10 +1,26 @@
 <script setup lang="ts">
 
-const {data: users}  = await useFetch('/api/users/admin',
-    {
-        method: 'GET',
-    }
-)
+const page = ref(1);
+
+const { data: response } = await useFetch('/api/users/admin', {
+  method: 'GET',
+  query: { page, limit: 10 }
+});
+
+const users = computed(() => response.value?.data || []);
+const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 });
+
+const nextPage = () => {
+  if (page.value < metadata.value.totalPages) {
+    page.value++;
+  }
+};
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--;
+  }
+};
 
 </script>
 
@@ -14,7 +30,7 @@ const {data: users}  = await useFetch('/api/users/admin',
     <button class="btn-primary" @click="navigateTo('/admin/users/register')">+ Novo Usuário</button>
   </div>
   <div class="card">
-    <template v-if="users?.length">
+    <template v-if="users.length">
       <table class="list-table">
         <thead>
           <tr><th>Nome</th><th>Privilégio</th><th>Status</th></tr>
@@ -27,6 +43,11 @@ const {data: users}  = await useFetch('/api/users/admin',
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">Anterior</button>
+        <span class="pagination-info">Página {{ metadata.page }} de {{ metadata.totalPages }}</span>
+        <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
+      </div>
     </template>
     <div v-else class="empty">Nenhum usuário cadastrado.</div>
   </div>

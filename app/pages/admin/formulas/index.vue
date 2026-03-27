@@ -1,10 +1,26 @@
 <script setup lang="ts">
 
-const {data: formulas}  = await useFetch<Array<{id: string; name: string}>>('/api/formulas',
-    {
-        method: 'GET',
-    }
-)
+const page = ref(1);
+
+const { data: response } = await useFetch('/api/formulas', {
+  method: 'GET',
+  query: { page, limit: 10 }
+});
+
+const formulas = computed(() => response.value?.data || []);
+const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 });
+
+const nextPage = () => {
+  if (page.value < metadata.value.totalPages) {
+    page.value++;
+  }
+};
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--;
+  }
+};
 
 </script>
 
@@ -14,7 +30,7 @@ const {data: formulas}  = await useFetch<Array<{id: string; name: string}>>('/ap
     <button class="btn-primary" @click="navigateTo('/admin/formulas/register')">+ Nova Fórmula</button>
   </div>
   <div class="card">
-    <template v-if="formulas?.length">
+    <template v-if="formulas.length">
       <table class="list-table">
         <thead>
           <tr><th>Fórmula</th></tr>
@@ -25,6 +41,11 @@ const {data: formulas}  = await useFetch<Array<{id: string; name: string}>>('/ap
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">Anterior</button>
+        <span class="pagination-info">Página {{ metadata.page }} de {{ metadata.totalPages }}</span>
+        <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
+      </div>
     </template>
     <div v-else class="empty">Nenhuma fórmula cadastrada.</div>
   </div>

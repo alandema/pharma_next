@@ -4,8 +4,11 @@ const selectedUserId = ref('')
 const selectedPatientId = ref('')
 const selectedDate = ref('')
 
-const { data: users } = await useFetch('/api/users/admin', { method: 'GET' })
-const { data: patients } = await useFetch('/api/patients', { method: 'GET' })
+const { data: usersResponse } = await useFetch<any>('/api/users/admin', { method: 'GET', query: { limit: 1000 } })
+const { data: patientsResponse } = await useFetch<any>('/api/patients', { method: 'GET', query: { limit: 1000 } })
+
+const users = computed(() => usersResponse.value?.data || [])
+const patients = computed(() => patientsResponse.value?.data || [])
 
 const { data: response, refresh } = await useFetch<any>('/api/logs', {
   method: 'GET',

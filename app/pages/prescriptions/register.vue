@@ -17,11 +17,14 @@ const previewPdfUrl = ref('');
 const previewPayload = ref<PreviewResponse | null>(null);
 const isSubmitting = ref(false);
 
-const [{ data: patients }, { data: cidsData }, { data: formulas }] = await Promise.all([
-  useFetch('/api/patients'),
+const [{ data: patientsResponse }, { data: cidsData }, { data: formulasResponse }] = await Promise.all([
+  useFetch<any>('/api/patients', { query: { limit: 1000 } }),
   useAsyncData('cids', () => queryCollection('cids').first()),
-  useFetch<Formula[]>('/api/formulas')
+  useFetch<any>('/api/formulas', { query: { limit: 1000 } })
 ]);
+
+const patients = computed(() => patientsResponse.value?.data || []);
+const formulas = computed<Formula[]>(() => formulasResponse.value?.data || []);
 
 const cids = computed(() => {
   const codes = cidsData.value?.codes ?? [];

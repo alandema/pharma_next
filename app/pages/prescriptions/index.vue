@@ -32,8 +32,9 @@ type Patient = {
   name: string;
 };
 
+const route = useRoute();
 const page = ref(1);
-const selectedPatientId = ref('');
+const selectedPatientId = ref((route.query.patientId as string) || '');
 const startDate = ref('');
 const endDate = ref('');
 
@@ -43,9 +44,11 @@ const isAdmin = computed(() => {
   return role === 'admin' || role === 'superadmin'
 })
 
-const { data: patients } = await useFetch<Patient[]>('/api/patients', {
+const { data: patientsResponse } = await useFetch<any>('/api/patients', {
   method: 'GET',
+  query: { limit: 1000 }
 });
+const patients = computed<Patient[]>(() => patientsResponse.value?.data || [])
 
 const { data: response, refresh } = await useFetch<PrescriptionResponse>('/api/prescriptions', {
   method: 'GET',

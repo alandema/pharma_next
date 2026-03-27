@@ -56,8 +56,8 @@ const isAdmin = computed(() => {
 })
 const canDelete = computed(() => isAdmin.value || (me.value as any)?.userId === patient.value?.registered_by)
 
-const { data: allUsers } = await useFetch<Prescritor[]>('/api/users/admin', { method: 'GET' })
-const prescritores = computed(() => allUsers.value?.filter(u => u.role === 'user') ?? [])
+const { data: allUsersResponse } = await useFetch<any>('/api/users/admin', { method: 'GET', query: { limit: 1000 } })
+const prescritores = computed(() => allUsersResponse.value?.data?.filter((u: any) => u.role === 'user') ?? [])
 const selectedPrescritorId = ref('')
 const transferError = ref('')
 const transferSuccess = ref('')
@@ -125,7 +125,7 @@ const save = async (data: Record<string, string>) => {
   </div>
 
   <div class="card mb-2">
-    <h2>Prescrições</h2>
+    <h2>Últimas 3 Prescrições</h2>
     <template v-if="patient?.prescriptions?.length">
       <table class="list-table">
         <thead>
@@ -133,11 +133,16 @@ const save = async (data: Record<string, string>) => {
         </thead>
         <tbody>
           <tr v-for="prescription in patient.prescriptions" :key="prescription.id" @click="navigateTo(`/prescriptions/${prescription.id}`)">
-            <td><strong>{{ prescription.date_prescribed }}</strong></td>
+            <td><strong>{{ prescription.date_prescribed.split('T')[0] }}</strong></td>
             <td><span class="text-muted">{{ prescriptionSummary(prescription.json_form_info) }}</span></td>
           </tr>
         </tbody>
       </table>
+      <div style="margin-top: 1rem; text-align: center;">
+        <button class="btn-secondary btn-sm" @click="navigateTo({ path: '/prescriptions', query: { patientId: route.params.id } })">
+          Ver Todas as Prescrições
+        </button>
+      </div>
     </template>
     <div v-else class="empty">Nenhuma prescrição encontrada.</div>
   </div>
