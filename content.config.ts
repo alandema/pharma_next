@@ -2,6 +2,18 @@ import { defineContentConfig, defineCollection, z } from '@nuxt/content'
 
 export default defineContentConfig({
   collections: {
+    business_info: defineCollection({
+      type: 'data',
+      source: 'business_info.yml',
+      schema: z.object({
+        name: z.string(),
+        address: z.string(),
+        phone: z.string(),
+        email: z.string().email().optional(),
+        website: z.string().optional(),
+        cnpj: z.string()
+      })
+    }),
     cids: defineCollection({
       type: 'data',
       source: 'cids.yml',
