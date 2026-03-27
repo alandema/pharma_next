@@ -5,7 +5,8 @@ dev.db
 .nuxt
 .output
 generated/
-prescription_details.yml
+business_info.yml
+
 
 # dependencies
 /node_modules
