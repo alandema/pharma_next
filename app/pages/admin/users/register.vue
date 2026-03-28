@@ -6,34 +6,16 @@ const f = ref({
   username: '', password: '', email: '',
   send_email: true,
   full_name: '', cpf: '', gender: '', birth_date: '', phone: '',
-  professional_type: '', council: '', council_number: '', council_state: '', specialties: [] as string[],
+  council: '', council_number: '', council_state: '',
   zipcode: '', street: '', address_number: '', complement: '', city: '', state: ''
 })
 const { add: addToast } = useToast()
 const { formatBrazilPhoneInput, formatCepInput, isValidBirthDate, normalizeText } = useInputFormatting()
 
-const { data: profs } = await useAsyncData('profs', () => queryCollection('professionals').first())
+const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
 
 const states = ref<any[]>([])
 const cities = ref<any[]>([])
-
-const selectedProf = computed(() => profs.value?.professionals?.find((p: any) => p.name === f.value.professional_type))
-const selectedSpecialty = computed({
-  get: () => f.value.specialties[0] ?? '',
-  set: (value: string) => {
-    f.value.specialties = value ? [value] : []
-  }
-})
-
-watch(() => f.value.professional_type, () => {
-  if (!selectedProf.value) {
-    f.value.council = ''
-    f.value.specialties = []
-    return
-  }
-  f.value.council = selectedProf.value.council
-  f.value.specialties = []
-})
 
 onMounted(async () => {
   states.value = await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
@@ -63,7 +45,6 @@ const normalizeForm = () => ({
   gender: normalizeText(f.value.gender, { titleCase: true }),
   birth_date: normalizeText(f.value.birth_date),
   phone: formatBrazilPhoneInput(f.value.phone),
-  professional_type: normalizeText(f.value.professional_type, { titleCase: true }),
   council: normalizeText(f.value.council),
   council_number: normalizeText(f.value.council_number),
   council_state: normalizeText(f.value.council_state).toUpperCase(),
@@ -93,7 +74,7 @@ const submit = async () => {
     addToast('Usuário criado como inativo. Um e-mail de ativação foi enviado.', 'success')
     navigateTo('/admin/users')
   } catch (error: any) {
-    addToast(error.data?.message || 'Erro', 'error')
+    addToast(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível criar o usuário. Verifique os dados e tente novamente.', 'error')
   }
 }
 </script>
@@ -121,24 +102,16 @@ const submit = async () => {
       <div class="form-group"><label>Telefone *</label><input v-model="f.phone" inputmode="tel" placeholder="Ex: +55 11 91234-5678" required /></div>
 
       <div class="section-title">Informações Profissionais</div>
-      <div class="form-group"><label>Tipo de Profissional</label>
-        <select v-model="f.professional_type" required>
-          <option v-for="p in profs?.professionals" :key="p.id" :value="p.name">{{ p.name }}</option>
+      <div class="form-group"><label>Conselho *</label>
+        <select v-model="f.council" required>
+          <option value="" disabled>Selecione</option>
+          <option v-for="council in councils?.councils" :key="council.id" :value="council.abbreviation">{{ council.name }}</option>
         </select>
       </div>
-      <div class="form-group"><label>Conselho *</label><input v-model="f.council" disabled /></div>
       <div class="form-group"><label>Número do Conselho *</label><input v-model="f.council_number" required /></div>
       <div class="form-group"><label>UF Conselho *</label>
         <select v-model="f.council_state" required>
           <option v-for="s in states" :key="s.id" :value="s.sigla">{{ s.sigla }}</option>
-        </select>
-      </div>
-      
-      <div class="form-group" style="grid-column: 1 / -1" v-if="selectedProf">
-        <label>Especialidades *</label>
-        <select v-model="selectedSpecialty" required>
-          <option value="" disabled>Selecione uma especialidade</option>
-          <option v-for="spec in selectedProf.specialties" :key="spec" :value="spec">{{ spec }}</option>
         </select>
       </div>
 

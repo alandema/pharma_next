@@ -20,7 +20,7 @@ const submit = async (data: Record<string, string>) => {
     toast.add('Paciente registrado com sucesso!', 'success')
     await navigateTo('/patients')
   } catch (error: any) {
-    toast.add(error.data?.message ?? 'Algo deu errado', 'error')
+    toast.add(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível registrar o paciente. Tente novamente.', 'error')
   }
 }
 

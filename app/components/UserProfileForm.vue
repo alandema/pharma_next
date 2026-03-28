@@ -11,10 +11,62 @@ const props = defineProps<{
 const apiEndpoint = computed(() => props.userId ? `/api/users/admin/${props.userId}` : '/api/users/me')
 
 const { add: addToast } = useToast()
-const { data: professionals } = await useAsyncData('professionals', () => queryCollection('professionals').first())
+const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
 
+const { data: meData } = await useFetch('/api/users/me')
 const { data: userData, refresh } = await useFetch(apiEndpoint.value)
 const profile = ref<any>({ ...(userData.value || {}) })
+const password = ref('')
+
+const isSelfProfile = computed(() => {
+  if (!props.userId) return true
+  const meId = (meData.value as any)?.id ?? (meData.value as any)?.userId
+  return Boolean(meId && meId === profile.value?.id)
+})
+
+const isAdminLikeMe = computed(() => {
+  const role = (meData.value as any)?.role
+  return role === 'admin' || role === 'superadmin'
+})
+
+const canEditOwnIdentity = computed(() => isSelfProfile.value && isAdminLikeMe.value)
+const canEditCpf = computed(() => Boolean(props.isAdmin) || canEditOwnIdentity.value)
+const canEditPassword = computed(() => Boolean(props.isAdmin) || isSelfProfile.value)
+
+const REQUIRED_PROFILE_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'full_name', label: 'Nome completo' },
+  { key: 'gender', label: 'Sexo' },
+  { key: 'birth_date', label: 'Data de nascimento' },
+  { key: 'phone', label: 'Telefone' },
+  { key: 'council', label: 'Conselho' },
+  { key: 'council_number', label: 'Número do conselho' },
+  { key: 'council_state', label: 'UF do conselho' },
+  { key: 'zipcode', label: 'CEP' },
+  { key: 'street', label: 'Endereço' },
+  { key: 'address_number', label: 'Número' },
+  { key: 'city', label: 'Cidade' },
+  { key: 'state', label: 'Estado' },
+]
+
+const hasRequiredValue = (value: unknown) => {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  return true
+}
+
+const getFirstMissingRequiredField = (payload: Record<string, unknown>) => {
+  const fields = canEditCpf.value
+    ? [{ key: 'cpf', label: 'CPF' }, ...REQUIRED_PROFILE_FIELDS]
+    : REQUIRED_PROFILE_FIELDS
+
+  for (const field of fields) {
+    if (!hasRequiredValue(payload[field.key])) {
+      return field
+    }
+  }
+
+  return null
+}
 
 const formattedPhone = computed({
   get() {
@@ -22,11 +74,18 @@ const formattedPhone = computed({
     try {
       const parsed = parsePhoneNumberWithError(profile.value.phone, 'BR')
       if (parsed.isValid()) {
-        return parsed.formatNational()
+        return parsed.formatInternational()
       }
     } catch (e) {}
-    
-    return new AsYouType('BR').input(profile.value.phone)
+
+    const raw = String(profile.value.phone).trim()
+    if (!raw) return ''
+
+    const digits = raw.replace(/\D+/g, '')
+    if (!digits) return ''
+
+    const localDigits = digits.startsWith('55') ? digits.slice(2) : digits
+    return new AsYouType().input(`+55${localDigits}`)
   },
   set(newValue) {
     profile.value.phone = new AsYouType('BR').input(newValue)
@@ -47,18 +106,63 @@ const { data: cities } = await useAsyncData(`cities-${props.userId || 'me'}`, as
   default: () => []
 })
 
-const selectedProf = computed(() => professionals.value?.professionals?.find((p: any) => p.name === profile.value.professional_type))
+const buildSubmitPayload = () => {
+  const data = profile.value || {}
+
+  const payload: Record<string, unknown> = {
+    send_email: data.send_email,
+    full_name: data.full_name,
+    gender: data.gender,
+    birth_date: data.birth_date,
+    phone: data.phone,
+    council: data.council,
+    council_number: data.council_number,
+    council_state: data.council_state,
+    zipcode: data.zipcode,
+    street: data.street,
+    address_number: data.address_number,
+    complement: data.complement,
+    city: data.city,
+    state: data.state,
+  }
+
+  if (canEditOwnIdentity.value) {
+    payload.email = data.email
+    payload.username = data.username
+  }
+
+  if (canEditCpf.value) {
+    payload.cpf = data.cpf
+  }
+
+  const normalizedPassword = password.value.trim()
+  if (canEditPassword.value && normalizedPassword) {
+    payload.password = normalizedPassword
+  }
+
+  return payload
+}
 
 const handleSubmit = async () => {
   try {
+    const payload = buildSubmitPayload()
+
+    const missingField = getFirstMissingRequiredField(payload)
+    if (missingField) {
+      addToast(`${missingField.label} é obrigatório.`, 'error')
+      return
+    }
+
     await $fetch(apiEndpoint.value, {
       method: 'PUT',
-      body: { ...profile.value } 
+      body: payload,
     })
     addToast('Perfil atualizado com sucesso!', 'success')
     await refresh()
+    profile.value = { ...(userData.value || {}) }
+    password.value = ''
   } catch (error: any) {
-    addToast(error.data?.message || 'Erro ao atualizar perfil', 'error')
+    addToast(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível atualizar o perfil. Verifique os dados e tente novamente.', 'error')
   }
 }
 </script>
@@ -67,28 +171,31 @@ const handleSubmit = async () => {
   <div class="card" style="max-width: 800px; margin: 0 auto;">
     <form @submit.prevent="handleSubmit" class="grid-form">
       <div class="section-title">Informações de Acesso</div>
-      <div class="form-group"><label>E-mail</label><input v-model="profile.email" disabled /></div>
-      <div class="form-group"><label>Usuário</label><input type="text" v-model="profile.username" disabled /></div>
-      <div class="form-group"><label>Senha</label><input type="password" :disabled="!isAdmin"/></div>
+      <div class="form-group"><label>E-mail</label><input v-model="profile.email" :disabled="!canEditOwnIdentity" /></div>
+      <div class="form-group"><label>Usuário</label><input type="text" v-model="profile.username" :disabled="!canEditOwnIdentity" /></div>
+      <div class="form-group"><label>Senha</label><input type="password" v-model="password" :disabled="!canEditPassword" placeholder="Deixe em branco para não alterar" /></div>
 
       
       <div class="section-title">Informações Pessoais</div>
       <div class="form-group"><label>Nome Completo</label><input v-model="profile.full_name" /></div>
-      <div class="form-group"><label>CPF</label><input v-model="profile.cpf" :disabled="!isAdmin" /></div>
+      <div class="form-group"><label>CPF</label><input v-model="profile.cpf" :disabled="!canEditCpf" /></div>
       
       <div class="form-group"><label>Sexo</label>
         <select v-model="profile.gender"><option value="">Selecione</option><option v-for="gender in GENDER_OPTIONS" :key="gender" :value="gender">{{ gender }}</option></select>
       </div>
       <div class="form-group"><label>Data de nascimento</label><input v-model="profile.birth_date" type="date" /></div>
       
-      <div class="form-group"><label>Telefone</label><input v-model="formattedPhone" inputmode="tel" placeholder="Ex: (11) 91234-5678" /></div>
+      <div class="form-group"><label>Telefone</label><input v-model="formattedPhone" inputmode="tel" placeholder="Ex: +55 11 91234-5678" /></div>
       
       <div class="section-title">Informações Profissionais</div>
-      <div class="form-group"><label>Tipo de Profissional</label><select v-model="profile.professional_type"><option v-for="prof in professionals?.professionals" :key="prof.name" :value="prof.name">{{ prof.name }}</option></select></div>
-      <div class="form-group"><label>Conselho</label><select v-model="profile.council"><option >{{ selectedProf?.council }}</option></select></div>
+      <div class="form-group"><label>Conselho</label>
+        <select v-model="profile.council">
+          <option value="">Selecione</option>
+          <option v-for="council in councils?.councils" :key="council.id" :value="council.abbreviation">{{ council.name }}</option>
+        </select>
+      </div>
       <div class="form-group"><label>Número do Conselho</label><input v-model="profile.council_number" /></div>
       <div class="form-group"><label>UF Conselho</label><select v-model="profile.council_state"><option v-for="state in states" :key="state.id" :value="state.sigla">{{ state.sigla }}</option></select></div>
-      <div class="form-group"><label>Especialidades</label><select v-model="profile.specialties[0]"><option v-for="spec in selectedProf?.specialties" :key="spec" :value="spec">{{ spec }}</option></select></div>
 
 
       <div class="section-title">Endereço Profissional</div>

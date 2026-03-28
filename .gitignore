@@ -5,7 +5,6 @@ dev.db
 .nuxt
 .output
 generated/
-business_info.yml
 
 
 # dependencies

@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Não foi possível gerar pré-visualização para este paciente/prescritor.' });
     }
 
-    const previewBuffer = await generatePDFDocument(event, formInfo, prescriber, patient);
+    const previewBuffer = await generatePDFDocument(formInfo, prescriber, patient);
     const previewHash = createHash('sha256').update(previewBuffer).digest('hex');
 
     return {

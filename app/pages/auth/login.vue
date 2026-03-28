@@ -15,7 +15,7 @@ const handleSubmit = async () => {
     await refreshNuxtData()
     await navigateTo('/')
   } catch (err: any) {
-    addToast(err.data?.message, 'error')
+    addToast(err?.data?.statusMessage ?? err?.data?.message ?? 'Falha no login. Verifique suas credenciais.', 'error')
   }
 }
 </script>

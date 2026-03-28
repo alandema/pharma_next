@@ -19,6 +19,7 @@ type Patient = {
 type User = {
   id: string;
   username: string;
+  full_name: string;
 };
 
 type Prescription = {
@@ -87,7 +88,7 @@ const reuse = () => {
       <h2>Informações</h2>
       <div class="form-row">
         <div><label>Data</label><p>{{ formatDatePtBR(prescription.date_prescribed) }}</p></div>
-        <div><label>Prescrito por</label><p>{{ prescription.user?.username || 'Desconhecido' }}</p></div>
+        <div><label>Prescrito por</label><p>{{ prescription.user?.full_name || 'Desconhecido' }}</p></div>
       </div>
       <div><label>Criado em</label><p>{{ formatDateTimePtBR(prescription.created_at) }}</p></div>
     </div>

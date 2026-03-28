@@ -22,9 +22,7 @@ export default defineEventHandler(async (event) => {
   if (body && typeof body === 'object' && 'role' in body && body.role !== 'user') {
     throw createError({ statusCode: 400, statusMessage: 'A criação de perfis admin/superadmin é permitida apenas via script.' })
   }
-
-
-  const { username, password, email, full_name, cpf, gender, birth_date, phone, professional_type, council, council_number, council_state, specialties, zipcode, street, address_number, complement, city, state } = body;
+  const { username, password, email, full_name, cpf, gender, birth_date, phone, council, council_number, council_state, zipcode, street, address_number, complement, city, state } = body;
   const normalizedUsername = typeof username === 'string' ? username.trim() : username
 
   const errorMessage = validateCredentials(normalizedUsername, password)
@@ -48,11 +46,9 @@ export default defineEventHandler(async (event) => {
       gender: normalizeText(gender, { titleCase: true }),
       birth_date: normalizeBirthDate(birth_date),
       phone: normalizeBrazilPhone(phone),
-      professional_type: normalizeText(professional_type, { titleCase: true }),
       council: normalizeText(council),
       council_number: normalizeText(council_number),
       council_state: normalizeText(council_state)?.toUpperCase() ?? null,
-      specialties,
       zipcode: normalizeBrazilCep(zipcode, true),
       street: normalizeText(street, { titleCase: true }),
       address_number: normalizeText(address_number),
@@ -68,12 +64,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'E-mail é obrigatório' });
   }
 
-  const requiredFields = ['full_name', 'cpf', 'gender', 'birth_date', 'phone', 'professional_type', 'council', 'council_number', 'council_state', 'zipcode', 'street', 'address_number', 'city', 'state'] as const
+  const requiredFields = ['full_name', 'cpf', 'gender', 'birth_date', 'phone', 'council', 'council_number', 'council_state', 'zipcode', 'street', 'address_number', 'city', 'state'] as const
   if (requiredFields.some((field) => !normalizedData[field])) {
     throw createError({ statusCode: 400, statusMessage: 'Todos os campos são obrigatórios, exceto complemento.' })
-  }
-  if (!Array.isArray(normalizedData.specialties) || normalizedData.specialties.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Especialidades são obrigatórias.' })
   }
 
   const existing = await prisma.user.findUnique({ where: { username: normalizedUsername }, select: { id: true } });
@@ -115,11 +108,9 @@ export default defineEventHandler(async (event) => {
       gender: normalizedData.gender,
       birth_date: normalizedData.birth_date,
       phone: normalizedData.phone,
-      professional_type: normalizedData.professional_type,
       council: normalizedData.council,
       council_number: normalizedData.council_number,
       council_state: normalizedData.council_state,
-      specialties: normalizedData.specialties,
       zipcode: normalizedData.zipcode,
       street: normalizedData.street,
       address_number: normalizedData.address_number,

@@ -108,7 +108,7 @@ const save = async (data: Record<string, string>) => {
     toast.add('Paciente atualizado com sucesso!', 'success')
     await navigateTo('/patients')
   } catch (error: any) {
-    toast.add(error?.data?.message ?? 'Falha ao atualizar paciente', 'error')
+    toast.add(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível atualizar o paciente. Tente novamente.', 'error')
   }
 }
 </script>

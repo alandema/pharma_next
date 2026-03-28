@@ -18,11 +18,9 @@ type SeedUser = {
   gender: string;
   birth_date: Date;
   phone: string;
-  professional_type: string;
   council: string;
   council_number: string;
   council_state: string;
-  specialties: string[];
   zipcode: string;
   street: string;
   address_number: string;
@@ -77,11 +75,9 @@ async function main() {
       gender: 'Masculino',
       birth_date: new Date('1980-01-10T00:00:00.000Z'),
       phone: '(11) 90000-0001',
-      professional_type: 'Administrador',
       council: 'N/A',
       council_number: 'N/A',
       council_state: 'SP',
-      specialties: ['Gestão'],
       zipcode: '01310-100',
       street: 'Av. Paulista',
       address_number: '1000',
@@ -101,11 +97,9 @@ async function main() {
       gender: 'Feminino',
       birth_date: new Date('1987-03-20T00:00:00.000Z'),
       phone: '(11) 90000-0002',
-      professional_type: 'Médica',
       council: 'CRM',
       council_number: '154321',
       council_state: 'SP',
-      specialties: ['Clínica Médica', 'Cardiologia'],
       zipcode: '01415-000',
       street: 'Rua Oscar Freire',
       address_number: '450',
@@ -125,11 +119,9 @@ async function main() {
       gender: 'Masculino',
       birth_date: new Date('1983-11-08T00:00:00.000Z'),
       phone: '(11) 90000-0003',
-      professional_type: 'Médico',
       council: 'CRM',
       council_number: '198765',
       council_state: 'SP',
-      specialties: ['Endocrinologia'],
       zipcode: '04538-133',
       street: 'Av. Brigadeiro Faria Lima',
       address_number: '3900',
@@ -156,11 +148,9 @@ async function main() {
         gender: user.gender,
         birth_date: user.birth_date,
         phone: user.phone,
-        professional_type: user.professional_type,
         council: user.council,
         council_number: user.council_number,
         council_state: user.council_state,
-        specialties: user.specialties,
         zipcode: user.zipcode,
         street: user.street,
         address_number: user.address_number,
@@ -180,11 +170,9 @@ async function main() {
         gender: user.gender,
         birth_date: user.birth_date,
         phone: user.phone,
-        professional_type: user.professional_type,
         council: user.council,
         council_number: user.council_number,
         council_state: user.council_state,
-        specialties: user.specialties,
         zipcode: user.zipcode,
         street: user.street,
         address_number: user.address_number,

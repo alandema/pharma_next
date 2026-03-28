@@ -1,0 +1,16 @@
+councils:
+  - id: 1
+    name: Conselho Regional de Odontologia (CRO)
+    abbreviation: CRO
+  - id: 2
+    name: Conselho Regional de Biomedicina (CRBM)
+    abbreviation: CRBM
+  - id: 3
+    name: Conselho Regional de Enfermagem (COREN)
+    abbreviation: COREN
+  - id: 4
+    name: Conselho Regional de Farmácia (CRF)
+    abbreviation: CRF
+  - id: 5
+    name: Conselho Regional de Medicina (CRM)
+    abbreviation: CRM

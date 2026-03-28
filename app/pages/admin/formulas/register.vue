@@ -21,7 +21,7 @@ const submit = async () => {
     })
     navigateTo('/admin/formulas')
   } catch (error: any) {
-    toast.add(error.data?.message ?? 'Algo deu errado', 'error')
+    toast.add(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível salvar a fórmula. Tente novamente.', 'error')
   }
 }
 
