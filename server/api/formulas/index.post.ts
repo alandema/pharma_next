@@ -1,6 +1,9 @@
 import { normalizeText } from '../../utils/inputNormalization';
+import { requireAdminLikeUser } from '../../utils/rbac';
 
 export default defineEventHandler(async (event) => {
+  requireAdminLikeUser(event)
+
   const body = await readBody(event)
 
   const name = normalizeText(body.name, { titleCase: true })

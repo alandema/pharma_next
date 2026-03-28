@@ -520,7 +520,7 @@ async function main() {
 
   const prescriptionEvents = createdPrescriptionPairs.map((pair, index) => ({
     event_time: new Date(Date.UTC(2026, 1, 10 + index, 11, 0, 0)),
-    message: 'Prescreveu para paciente',
+    message: `Prescritor ${pair.user_id} fez uma prescrição para paciente ${pair.patient_id}`,
     user_id: pair.user_id,
     patient_id: pair.patient_id,
   }));

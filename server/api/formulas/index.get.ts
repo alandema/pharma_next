@@ -1,4 +1,8 @@
+import { requireAuthenticatedUser } from '../../utils/rbac';
+
 export default defineEventHandler(async (event) => {
+  requireAuthenticatedUser(event)
+
   const query = getQuery(event);
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.max(1, Number(query.limit) || 10);

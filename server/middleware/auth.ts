@@ -40,7 +40,7 @@ export default defineEventHandler((event) => {
   if (!token) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized: No token provided'
+      statusMessage: 'Não autorizado: token não fornecido.'
     });
   }
 
@@ -53,7 +53,7 @@ export default defineEventHandler((event) => {
   } catch (err) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized: Invalid token'
+      statusMessage: 'Não autorizado: token inválido.'
     });
   }
 
@@ -61,7 +61,7 @@ export default defineEventHandler((event) => {
     if (decoded.role !== 'admin' && decoded.role !== 'superadmin') {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Forbidden: Admins only'
+        statusMessage: 'Acesso negado: apenas administradores.'
       });
     }
   }

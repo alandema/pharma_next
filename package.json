@@ -24,6 +24,7 @@
     "libphonenumber-js": "^1.12.40",
     "nuxt": "latest",
     "pdfkit": "^0.18.0",
+    "resend": "^6.9.4",
     "vue": "latest",
     "vue-router": "latest"
   },

@@ -23,7 +23,7 @@ const handleSubmit = async () => {
 <template>
   <div class="auth-page">
     <div class="card auth-card">
-      <img src="/logo.png" alt="amma" class="auth-logo" />
+      <img src="/logo.png" alt="Logo da AMMA" class="auth-logo" />
       <p class="text-muted auth-sub">{{ brand.subtitle }}</p>
       <form @submit.prevent="handleSubmit">
         <div class="form-group">

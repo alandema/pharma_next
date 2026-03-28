@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { useDateFormatting } from '../../composables/useDateFormatting'
+
 type Formula = { id: string; name: string; information?: string | null };
 type PrescriptionFormulaInput = { formula_id: string; description: string };
 type PreviewResponse = { pdf_base64: string; pdf_hash: string };
 
-const getTodayDate = () => new Date().toISOString().split('T')[0];
-
 const route = useRoute();
 const toast = useToast();
+const { getTodayInputDate } = useDateFormatting()
 const patient_id = ref((route.query.patient_id as string) || '');
-const date_prescribed = ref(getTodayDate());
+const date_prescribed = ref(getTodayInputDate());
 const cid_code = ref((route.query.cid_code as string) || '');
 const manual_cid = ref('');
 const formulasInput = ref<PrescriptionFormulaInput[]>([]);
@@ -128,7 +129,7 @@ const preview = async () => {
 const save = async () => {
   const payload = buildPayload();
   if (!previewPayload.value) {
-    throw new Error('Preview ausente. Gere o preview antes de salvar.');
+    throw new Error('Pré-visualização ausente. Gere a pré-visualização antes de salvar.');
   }
 
   await $fetch('/api/prescriptions', {
@@ -236,7 +237,7 @@ onBeforeUnmount(() => {
       </template>
       <div class="btn-group" style="justify-content:flex-end;gap:.5rem;">
         <button v-if="isPreviewing" type="button" :disabled="isSubmitting" @click="clearPreview">Editar</button>
-        <button type="submit" :disabled="isSubmitting">{{ isSubmitting ? (isPreviewing ? 'Salvando...' : 'Gerando Preview...') : (isPreviewing ? 'Confirmar e Salvar' : 'Pré-visualizar') }}</button>
+        <button type="submit" :disabled="isSubmitting">{{ isSubmitting ? (isPreviewing ? 'Salvando...' : 'Gerando pré-visualização...') : (isPreviewing ? 'Confirmar e Salvar' : 'Pré-visualizar') }}</button>
       </div>
     </form>
   </div>

@@ -1,4 +1,8 @@
+import { requireAdminLikeUser } from '../../utils/rbac';
+
 export default defineEventHandler(async (event) => {
+  requireAdminLikeUser(event)
+
   const body = await readBody(event)
   const formula = await prisma.formulas.update({
     where: {

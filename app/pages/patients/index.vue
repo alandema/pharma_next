@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { useDateFormatting } from '../../composables/useDateFormatting'
+
 interface Patient {
   id: string;
   name: string;
-  user: { username: string; };
+  user: { username: string; full_name: string };
   cpf: string | null;
   last_prescription_date?: string;
 }
@@ -13,6 +15,7 @@ interface PaginatedResponse {
 }
 
 const page = ref(1);
+const { formatDatePtBR } = useDateFormatting()
 
 const { data: response } = await useFetch<PaginatedResponse>('/api/patients', {
   method: 'GET',
@@ -53,14 +56,14 @@ const prevPage = () => {
           <tr>
             <th>Paciente</th>
             <th>Última Prescrição</th>
-            <th v-if="isAdmin">Prescritor</th>
+            <th v-if="isAdmin">Prescritor Registrado</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="patient in patients" :key="patient.id" @click="navigateTo(`/patients/${patient.id}`)">
             <td>{{ patient.name }}</td>
-            <td><span class="text-muted">{{ patient.last_prescription_date || '—' }}</span></td>
-            <td v-if="isAdmin"><span class="text-muted">{{ patient.user?.username || '—' }}</span></td>
+            <td><span class="text-muted">{{ formatDatePtBR(patient.last_prescription_date) }}</span></td>
+            <td v-if="isAdmin"><span class="text-muted">{{ patient.user?.full_name || '—' }}</span></td>
           </tr>
         </tbody>
       </table>

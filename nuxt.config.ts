@@ -1,22 +1,30 @@
 import { fileURLToPath } from 'url'
 
+const requireEnv = (name: string): string => {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
 export default defineNuxtConfig({
   modules: ['@nuxt/content'],
 
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL || '',
-    jwtSecret: process.env.JWT_SECRET || '',
-    jwtExpires: process.env.JWT_EXPIRES || '',
-    sendgridApiKey: process.env.SENDGRID_API_KEY || '',
-    alwaysSendEmails: process.env.ALWAYS_SEND_EMAILS || '',
-    blobReadWriteToken: process.env.BLOB_READ_WRITE_TOKEN || '',
-    safeidClientId: process.env.SAFEID_CLIENT_ID || '',
-    safeidClientSecret: process.env.SAFEID_CLIENT_SECRET || '',
-    safeidRedirectUri: process.env.SAFEID_REDIRECT_URI || '',
-    activationTokenSecret: process.env.JWT_SECRET || '',
-    activationBaseUrl: process.env.ACTIVATION_BASE_URL || '',
+    databaseUrl: requireEnv('DATABASE_URL'),
+    jwtSecret: requireEnv('JWT_SECRET'),
+    jwtExpires: requireEnv('JWT_EXPIRES'),
+    sendgridApiKey: requireEnv('SENDGRID_API_KEY'),
+    alwaysSendEmails: requireEnv('ALWAYS_SEND_EMAILS'),
+    blobReadWriteToken: requireEnv('BLOB_READ_WRITE_TOKEN'),
+    safeidClientId: requireEnv('SAFEID_CLIENT_ID'),
+    safeidClientSecret: requireEnv('SAFEID_CLIENT_SECRET'),
+    safeidRedirectUri: requireEnv('SAFEID_REDIRECT_URI'),
+    // activationTokenSecret: requireEnv('ACTIVATION_TOKEN_SECRET'),
+    // activationBaseUrl: requireEnv('ACTIVATION_BASE_URL'),
     public: {
-      nodeEnv: process.env.NODE_ENV || 'development'
+      nodeEnv: requireEnv('NODE_ENV')
     }
   },
 

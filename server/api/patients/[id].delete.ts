@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   if (user.role !== 'admin' && user.role !== 'superadmin') where.registered_by = user.userId
 
   const patient = await prisma.patient.findUnique({ where })
-  if (!patient) throw createError({ statusCode: 404, statusMessage: 'Patient not found' })
+  if (!patient) throw createError({ statusCode: 404, statusMessage: 'Paciente não encontrado.' })
 
   await prisma.patient.delete({ where: { id: patient.id } })
   await prisma.log.create({ data: { event_time: new Date(), message: `Deletou paciente: ${patient.name}`, user_id: user.userId } })

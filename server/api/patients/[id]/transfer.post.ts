@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   if (user.role !== 'admin' && user.role !== 'superadmin') {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Forbidden: only admins can transfer patients',
+      statusMessage: 'Acesso negado: apenas administradores podem transferir pacientes.',
     });
   }
 
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!prescritor_id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Bad Request: prescritor_id is required',
+      statusMessage: 'prescritor_id é obrigatório.',
     });
   }
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   if (!targetPrescritor || targetPrescritor.role !== 'user') {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Target user not found or is not a user',
+      statusMessage: 'Prescritor de destino não encontrado ou inválido.',
     });
   }
 
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   if (!existingPatient) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Patient not found',
+      statusMessage: 'Paciente não encontrado.',
     });
   }
 

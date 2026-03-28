@@ -12,14 +12,14 @@ export default defineEventHandler(async (event) => {
         orderBy: { date_prescribed: 'desc' },
         take: 3,
       },
-      user: { select: { id: true, username: true } },
+      user: { select: { id: true, username: true, full_name: true } },
     },
   });
 
   if (!patient) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Patient not found',
+      statusMessage: 'Paciente não encontrado.',
     });
   }
   return {
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     city: patient.city,
     medical_history: patient.medical_history,
     registered_by: patient.registered_by,
-    registered_by_username: patient.user?.username ?? null,
+    registered_by_full_name: patient.user?.full_name ?? null,
     prescriptions: patient.prescriptions.map((prescription) => ({
       ...prescription,
       date_prescribed: prescription.date_prescribed.toISOString().slice(0, 10),

@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
 
   if (isPreviewOnly) {
     if (!prescriber || !patient) {
-      throw createError({ statusCode: 400, statusMessage: 'Não foi possível gerar preview para este paciente/prescritor.' });
+      throw createError({ statusCode: 400, statusMessage: 'Não foi possível gerar pré-visualização para este paciente/prescritor.' });
     }
 
     const previewBuffer = await generatePDFDocument(event, formInfo, prescriber, patient);
@@ -102,18 +102,18 @@ export default defineEventHandler(async (event) => {
   }
 
   if (typeof body.preview_pdf_base64 !== 'string' || body.preview_pdf_base64.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Preview PDF é obrigatório para salvar.' });
+    throw createError({ statusCode: 400, statusMessage: 'PDF de pré-visualização é obrigatório para salvar.' });
   }
 
   if (typeof body.preview_pdf_hash !== 'string' || body.preview_pdf_hash.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Hash do preview é obrigatório.' });
+    throw createError({ statusCode: 400, statusMessage: 'Hash da pré-visualização é obrigatório.' });
   }
 
   const attachPDFBuffer = Buffer.from(body.preview_pdf_base64, 'base64');
   const previewHash = createHash('sha256').update(attachPDFBuffer).digest('hex');
 
   if (previewHash !== body.preview_pdf_hash) {
-    throw createError({ statusCode: 400, statusMessage: 'Preview PDF inválido.' });
+    throw createError({ statusCode: 400, statusMessage: 'PDF de pré-visualização inválido.' });
   }
 
   if (!prescriber || !patient) {
@@ -157,6 +157,7 @@ export default defineEventHandler(async (event) => {
     data: { pdf_url: blob.url }
   });
 
+
   if (patient.email && patient.send_email) {
     await sendPatientEmail(patient.email, patient.name, prescriber.username, blob.url);
   }
@@ -167,7 +168,8 @@ export default defineEventHandler(async (event) => {
 
   await sendPharmacyEmail(patient.name, blob.url, alwaysSendEmails);
 
-  await prisma.log.create({ data: { event_time: new Date(), message: `Prescreveu para paciente`, user_id: user.userId, patient_id: body.patient_id } })
+
+  await prisma.log.create({ data: { event_time: new Date(), message: `Prescritor ${user.username} fez uma prescrição para paciente ${patient.name}`, user_id: user.userId, patient_id: body.patient_id } })
 
   return {
     id: prescription.id,

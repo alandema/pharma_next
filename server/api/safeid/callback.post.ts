@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   if (body.error === 'user_denied') { //
     console.error('Doctor denied the authorization.')
     // Handle the denial (e.g., update database status, redirect user to an error page)
-    return { success: false, message: 'Authorization denied' }
+    return { success: false, message: 'Autorização negada.' }
   }
 
   // 3. Extract the successful data
@@ -25,5 +25,5 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fallback for unexpected payloads
-  return createError({ statusCode: 400, message: 'Invalid payload' })
+  return createError({ statusCode: 400, message: 'Payload inválido.' })
 })

@@ -1,4 +1,7 @@
+import { requireAdminLikeUser } from '../../utils/rbac';
+
 export default defineEventHandler(async (event) => {
+  const actor = requireAdminLikeUser(event)
   const body = await readBody(event)
 
   if (typeof body.message !== 'string' || body.message.trim().length === 0) {
@@ -9,6 +12,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'user_id inválido.' })
   }
 
+  if (body.user_id !== undefined && body.user_id !== null && body.user_id !== actor.userId) {
+    throw createError({ statusCode: 400, statusMessage: 'user_id deve corresponder ao usuário autenticado.' })
+  }
+
   if (body.patient_id !== undefined && body.patient_id !== null && typeof body.patient_id !== 'string') {
     throw createError({ statusCode: 400, statusMessage: 'patient_id inválido.' })
   }
@@ -17,7 +24,7 @@ export default defineEventHandler(async (event) => {
     data: {
       event_time: new Date(),
       message: body.message.trim(),
-      user_id: body.user_id ?? null,
+      user_id: actor.userId,
       patient_id: body.patient_id ?? null,
     }
   })

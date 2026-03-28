@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const [patients, total] = await Promise.all([
     prisma.patient.findMany({
       where,
-      select: { id: true, name: true, cpf: true, user: { select: { username: true } } },
+      select: { id: true, name: true, cpf: true, user: { select: { username: true , full_name: true } } },
       orderBy: { name: 'asc' },
       skip,
       take: limit,

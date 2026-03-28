@@ -7,7 +7,7 @@
     <nav v-if="user" class="app-nav">
       <div class="nav-left">
         <div class="logo">
-          <img src="/header.png" alt="amma" />
+          <img src="/header.png" alt="Logo da AMMA" />
         </div>
         <span class="nav-home" @click="navigateTo(isAdminRole(user.role) ? '/admin' : '/')">Início</span>
       </div>

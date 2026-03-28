@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (user.role !== 'admin' && user.role !== 'superadmin' && prescription.prescribed_by !== user.userId) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Prescription not found',
+      statusMessage: 'Prescrição não encontrada.',
     });
   }
   

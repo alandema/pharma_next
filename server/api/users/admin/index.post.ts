@@ -11,10 +11,17 @@ import {
   normalizeBoolean,
   normalizeText,
 } from '../../../utils/inputNormalization';
+import { requireAdminLikeUser } from '../../../utils/rbac';
 
 export default defineEventHandler(async (event) => {
+  requireAdminLikeUser(event)
+
   const config = useRuntimeConfig(event)
   const body = await readBody(event)
+
+  if (body && typeof body === 'object' && 'role' in body && body.role !== 'user') {
+    throw createError({ statusCode: 400, statusMessage: 'A criação de perfis admin/superadmin é permitida apenas via script.' })
+  }
 
 
   const { username, password, email, full_name, cpf, gender, birth_date, phone, professional_type, council, council_number, council_state, specialties, zipcode, street, address_number, complement, city, state } = body;
@@ -63,17 +70,17 @@ export default defineEventHandler(async (event) => {
 
   const requiredFields = ['full_name', 'cpf', 'gender', 'birth_date', 'phone', 'professional_type', 'council', 'council_number', 'council_state', 'zipcode', 'street', 'address_number', 'city', 'state'] as const
   if (requiredFields.some((field) => !normalizedData[field])) {
-    throw createError({ statusCode: 400, statusMessage: 'Todos os campos sao obrigatorios, exceto complemento' })
+    throw createError({ statusCode: 400, statusMessage: 'Todos os campos são obrigatórios, exceto complemento.' })
   }
   if (!Array.isArray(normalizedData.specialties) || normalizedData.specialties.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Especialidades e obrigatorio' })
+    throw createError({ statusCode: 400, statusMessage: 'Especialidades são obrigatórias.' })
   }
 
   const existing = await prisma.user.findUnique({ where: { username: normalizedUsername }, select: { id: true } });
   if (existing) {
     throw createError({
       statusCode: 409,
-      statusMessage: 'Username already exists'
+      statusMessage: 'Nome de usuário já existe.'
     });
   }
 

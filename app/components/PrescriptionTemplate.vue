@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useDateFormatting } from '../composables/useDateFormatting'
+
 type Patient = {
   name: string;
   cpf?: string | null;
@@ -58,10 +60,10 @@ const detailEntries = computed(() =>
 );
 
 const formulas = computed(() => formInfo.value.formulas ?? []);
+const { formatDatePtBR, formatDateTimePtBR } = useDateFormatting()
 
 const formattedDate = computed(() => {
-  const d = new Date(`${props.prescription.date_prescribed}T00:00:00`);
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return formatDatePtBR(props.prescription.date_prescribed)
 });
 
 const patientAddress = computed(() => {
@@ -76,7 +78,7 @@ const prescriptionShortId = computed(() =>
 const humanizeKey = (key: string) =>
   key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-const generatedAt = new Date().toLocaleString('pt-BR');
+const generatedAt = formatDateTimePtBR(new Date())
 const { brand } = useAppConfig();
 </script>
 
@@ -98,7 +100,7 @@ const { brand } = useAppConfig();
         <label>Paciente: </label><span>{{ prescription.patient.name }}</span>
       </div>
       <div v-if="prescription.patient.birth_date">
-        <label>Data de Nascimento: </label><span>{{ prescription.patient.birth_date }}</span>
+        <label>Data de Nascimento: </label><span>{{ formatDatePtBR(prescription.patient.birth_date) }}</span>
       </div>
       <div v-else></div>
       <div v-if="prescription.patient.gender">

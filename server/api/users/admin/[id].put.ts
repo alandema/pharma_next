@@ -7,23 +7,43 @@ import {
   normalizeBoolean,
   normalizeText,
 } from '../../../utils/inputNormalization';
+import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, USER_SAFE_SELECT } from '../../../utils/rbac';
 
 export default defineEventHandler(async (event) => {
+  const actor = requireAdminLikeUser(event)
   const id = event.context.params?.id
 
   const body = await readBody(event).catch(() => {
     throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
   })
 
-  const user = await prisma.user.findUnique({ where: { id }, select: { is_active: true, username: true, email: true, zipcode: true, send_email: true } })
-  if (!user) throw createError({ statusCode: 404, statusMessage: 'User not found' })
+  if (!body || typeof body !== 'object') {
+    throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
+  }
+
+  const user = await prisma.user.findUnique({ where: { id }, select: { is_active: true, username: true, email: true, zipcode: true, send_email: true, role: true } })
+  if (!user) throw createError({ statusCode: 404, statusMessage: 'Usuário não encontrado.' })
+
+  if (!isKnownRole(user.role)) {
+    throw createError({ statusCode: 500, statusMessage: 'Configuração de papel de destino inválida.' })
+  }
+
+  assertCanManageTargetRole(actor.role, user.role)
+
+  if ('role' in body && body.role !== user.role) {
+    throw createError({ statusCode: 400, statusMessage: 'Mudança de papel não é permitida pela aplicação.' })
+  }
 
   if (Object.keys(body).length === 0) {
     const updated = await prisma.user.update({
       where: { id },
       data: { is_active: !user.is_active },
+      select: USER_SAFE_SELECT,
     })
-    return updated
+    return {
+      ...updated,
+      birth_date: updated.birth_date ? new Date(updated.birth_date).toISOString().split('T')[0] : null,
+    }
   }
 
   const updateData: any = {}
@@ -75,7 +95,11 @@ export default defineEventHandler(async (event) => {
   const updated = await prisma.user.update({
     where: { id },
     data: updateData,
+    select: USER_SAFE_SELECT,
   })
 
-  return updated
+  return {
+    ...updated,
+    birth_date: updated.birth_date ? new Date(updated.birth_date).toISOString().split('T')[0] : null,
+  }
 })

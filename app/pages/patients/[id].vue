@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useInputFormatting } from '../../composables/useInputFormatting'
+import { useDateFormatting } from '../../composables/useDateFormatting'
 
 type Patient = {
   id: string;
@@ -7,7 +8,7 @@ type Patient = {
   email?: string;
   send_email?: boolean;
   registered_by: string;
-  registered_by_username?: string | null;
+  registered_by_full_name?: string | null;
   rg?: string;
   gender?: string;
   cpf?: string;
@@ -48,6 +49,7 @@ type Prescritor = { id: string; username: string; role: string }
 const route = useRoute()
 const toast = useToast()
 const { isBrazilCountry, isValidBirthDate } = useInputFormatting()
+const { formatDatePtBR } = useDateFormatting()
 const { data: patient, refresh } = await useFetch<Patient>(`/api/patients/${route.params.id}`, { method: 'GET' })
 const { data: me } = await useFetch('/api/users/me')
 const isAdmin = computed(() => {
@@ -133,7 +135,7 @@ const save = async (data: Record<string, string>) => {
         </thead>
         <tbody>
           <tr v-for="prescription in patient.prescriptions" :key="prescription.id" @click="navigateTo(`/prescriptions/${prescription.id}`)">
-            <td><strong>{{ prescription.date_prescribed.split('T')[0] }}</strong></td>
+            <td><strong>{{ formatDatePtBR(prescription.date_prescribed) }}</strong></td>
             <td><span class="text-muted">{{ prescriptionSummary(prescription.json_form_info) }}</span></td>
           </tr>
         </tbody>
@@ -149,12 +151,12 @@ const save = async (data: Record<string, string>) => {
 
   <div v-if="isAdmin" class="card">
     <h2>Transferir Paciente</h2>
-    <p class="text-muted mb-2">Prescritor atual: <strong>{{ patient?.registered_by_username ?? patient?.registered_by }}</strong></p>
+    <p class="text-muted mb-2">Prescritor atual: <strong>{{ patient?.registered_by_full_name ?? patient?.registered_by }}</strong></p>
     <div class="gap-row">
       <select v-model="selectedPrescritorId" style="flex:1">
         <option value="" disabled>Selecione um prescritor</option>
         <option v-for="prescritor in prescritores" :key="prescritor.id" :value="prescritor.id" :disabled="prescritor.id === patient?.registered_by">
-          {{ prescritor.username }}{{ prescritor.id === patient?.registered_by ? ' (atual)' : '' }}
+          {{ prescritor.full_name }}{{ prescritor.id === patient?.registered_by ? ' (atual)' : '' }}
         </option>
       </select>
       <button class="btn-primary" @click="transferPatient" :disabled="!selectedPrescritorId">Transferir</button>

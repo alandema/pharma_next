@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDateFormatting } from '../../composables/useDateFormatting'
 
 type Prescription = {
   id: string;
@@ -17,14 +18,18 @@ type Prescription = {
   user: {
     id: string;
     username: string;
+    full_name: string;
   } | null;
 };
 
-type PrescriptionResponse = {
-  prescriptions: Prescription[];
-  total: number;
-  page: number;
-  totalPages: number;
+type PaginatedPrescriptionResponse = {
+  data: Prescription[];
+  metadata: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 };
 
 type Patient = {
@@ -34,6 +39,7 @@ type Patient = {
 
 const route = useRoute();
 const page = ref(1);
+const { formatDatePtBR } = useDateFormatting()
 const selectedPatientId = ref((route.query.patientId as string) || '');
 const startDate = ref('');
 const endDate = ref('');
@@ -50,10 +56,11 @@ const { data: patientsResponse } = await useFetch<any>('/api/patients', {
 });
 const patients = computed<Patient[]>(() => patientsResponse.value?.data || [])
 
-const { data: response, refresh } = await useFetch<PrescriptionResponse>('/api/prescriptions', {
+const { data: response } = await useFetch<PaginatedPrescriptionResponse>('/api/prescriptions', {
   method: 'GET',
   query: {
     page,
+    limit: 10,
     patientId: selectedPatientId,
     startDate,
     endDate
@@ -61,13 +68,23 @@ const { data: response, refresh } = await useFetch<PrescriptionResponse>('/api/p
   watch: [page, selectedPatientId, startDate, endDate]
 });
 
-const goToPage = (newPage: number) => {
-  page.value = newPage;
+const prescriptions = computed(() => response.value?.data || [])
+const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 })
+
+const nextPage = () => {
+  if (page.value < metadata.value.totalPages) {
+    page.value++;
+  }
+};
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--;
+  }
 };
 
 const filterByPatient = () => {
   page.value = 1;
-  refresh();
 };
 
 const clearFilter = () => {
@@ -99,26 +116,25 @@ const clearFilter = () => {
   </div>
 
   <div class="card">
-    <template v-if="response?.prescriptions?.length">
+    <template v-if="prescriptions.length">
       <table class="list-table">
         <thead>
           <tr><th>Data</th><th>Paciente</th><th v-if="isAdmin">Prescritor</th></tr>
         </thead>
         <tbody>
-          <tr v-for="prescription in response.prescriptions" :key="prescription.id" @click="navigateTo(`/prescriptions/${prescription.id}`)">
-            <td>{{ prescription.date_prescribed }}</td>
+          <tr v-for="prescription in prescriptions" :key="prescription.id" @click="navigateTo(`/prescriptions/${prescription.id}`)">
+            <td>{{ formatDatePtBR(prescription.date_prescribed) }}</td>
             <td>{{ prescription.patient.name }}</td>
-            <td v-if="isAdmin"><span class="text-muted">{{ prescription.user?.username || '—' }}</span></td>
+            <td v-if="isAdmin"><span class="text-muted">{{ prescription.user?.full_name || '—' }}</span></td>
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">Anterior</button>
+        <span class="pagination-info">Página {{ metadata.page }} de {{ metadata.totalPages }}</span>
+        <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
+      </div>
     </template>
     <div v-else class="empty">Nenhuma prescrição encontrada.</div>
-  </div>
-
-  <div v-if="response && response.totalPages > 1" class="pagination">
-    <button class="btn-sm" @click="goToPage(page - 1)" :disabled="page <= 1">← Anterior</button>
-    <span class="text-muted">Página {{ page }} de {{ response.totalPages }}</span>
-    <button class="btn-sm" @click="goToPage(page + 1)" :disabled="page >= response.totalPages">Próxima →</button>
   </div>
 </template>

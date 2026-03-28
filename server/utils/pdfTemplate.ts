@@ -67,7 +67,7 @@ export async function generatePDFDocument(event: H3Event, body: any, prescriber:
     // Prescriber Info (Footer-ish)
     doc.moveDown(4);
     doc.fontSize(12).text('_____________________________________', { align: 'center' });
-    doc.text(`Dr(a). ${prescriber.full_name || prescriber.username || prescriber}`, { align: 'center' });
+    doc.text(`${prescriber.full_name || prescriber.username || prescriber}`, { align: 'center' });
     if (prescriber.council && prescriber.council_number && prescriber.council_state) {
       doc.text(`${prescriber.council}: ${prescriber.council_number} / ${prescriber.council_state}`, { align: 'center' });
     }
