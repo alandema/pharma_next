@@ -171,7 +171,13 @@ const buildPayload = () => {
     .map((item) => ({ formula_id: item.formula_id, description: item.description.trim() }))
     .filter((item) => item.formula_id && item.description);
 
-  const finalCid = cid_code.value === 'Outro' ? manual_cid.value.trim() : cid_code.value;
+  const selectedCid = cids.value.find((cid) => cid.code === cid_code.value);
+  const cidDescription = selectedCid?.name;
+  const finalCid = cid_code.value === 'Outro'
+    ? manual_cid.value.trim()
+    : cidDescription
+      ? `${cid_code.value} - ${cidDescription}`
+      : cid_code.value;
 
   return { patient_id: patient_id.value, cid_code: finalCid, formulas: cleanedFormulas };
 };
