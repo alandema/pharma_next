@@ -1,8 +1,11 @@
+import { buildPaginationMetadata, parsePagination } from '../../utils/pagination';
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
-  const page = Math.max(1, Number(query.page) || 1);
-  const limit = Math.max(1, Number(query.limit) || 10);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(query as Record<string, unknown>, {
+    defaultLimit: 10,
+    maxLimit: 50,
+  });
   const patientId = query.patientId as string | undefined;
   const startDate = query.startDate as string | undefined;
   const endDate = query.endDate as string | undefined;
@@ -29,7 +32,7 @@ export default defineEventHandler(async (event) => {
           select: { id: true, name: true }
         },
         user: {
-          select: { id: true, username: true }
+          select: { id: true, username: true, full_name: true}
         }
       }
     }),
@@ -41,11 +44,6 @@ export default defineEventHandler(async (event) => {
       ...prescription,
       date_prescribed: prescription.date_prescribed.toISOString().slice(0, 10)
     })),
-    metadata: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    }
+    metadata: buildPaginationMetadata(total, page, limit),
   };
 });

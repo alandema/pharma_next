@@ -1,17 +1,54 @@
 <script setup lang="ts">
 import { useDateFormatting } from '../../../composables/useDateFormatting'
 
+type PaginationMetadata = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+type PaginatedResponse<T> = {
+  data: T[];
+  metadata: PaginationMetadata;
+};
+
+type UserOption = {
+  id: string;
+  username: string;
+  full_name: string;
+  role: string;
+};
+
+type PatientOption = {
+  id: string;
+  name: string;
+};
+
 const page = ref(1)
+const pageJumpInput = ref('1')
+const userOptionsPage = ref(1)
+const patientOptionsPage = ref(1)
 const selectedUserId = ref('')
 const selectedPatientId = ref('')
 const selectedDate = ref('')
 const { formatDateTimePtBR } = useDateFormatting()
 
-const { data: usersResponse } = await useFetch<any>('/api/users/admin', { method: 'GET', query: { limit: 1000 } })
-const { data: patientsResponse } = await useFetch<any>('/api/patients', { method: 'GET', query: { limit: 1000 } })
+const { data: usersResponse } = await useFetch<PaginatedResponse<UserOption>>('/api/users/admin', {
+  method: 'GET',
+  query: { page: userOptionsPage, limit: 10 },
+  watch: [userOptionsPage],
+})
+const { data: patientsResponse } = await useFetch<PaginatedResponse<PatientOption>>('/api/patients', {
+  method: 'GET',
+  query: { page: patientOptionsPage, limit: 10 },
+  watch: [patientOptionsPage],
+})
 
 const users = computed(() => usersResponse.value?.data || [])
 const patients = computed(() => patientsResponse.value?.data || [])
+const usersMetadata = computed(() => usersResponse.value?.metadata || { page: 1, totalPages: 1 })
+const patientsMetadata = computed(() => patientsResponse.value?.metadata || { page: 1, totalPages: 1 })
 
 const { data: response } = await useFetch<any>('/api/logs', {
   method: 'GET',
@@ -23,10 +60,36 @@ const logs = computed(() => response.value?.data || [])
 const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 })
 
 const clearFilters = () => {
+  userOptionsPage.value = 1
+  patientOptionsPage.value = 1
   selectedUserId.value = ''
   selectedPatientId.value = ''
   selectedDate.value = ''
   page.value = 1
+}
+
+const nextUsersPage = () => {
+  if (userOptionsPage.value < usersMetadata.value.totalPages) {
+    userOptionsPage.value++
+  }
+}
+
+const prevUsersPage = () => {
+  if (userOptionsPage.value > 1) {
+    userOptionsPage.value--
+  }
+}
+
+const nextPatientsPage = () => {
+  if (patientOptionsPage.value < patientsMetadata.value.totalPages) {
+    patientOptionsPage.value++
+  }
+}
+
+const prevPatientsPage = () => {
+  if (patientOptionsPage.value > 1) {
+    patientOptionsPage.value--
+  }
 }
 
 const nextPage = () => {
@@ -40,6 +103,24 @@ const prevPage = () => {
     page.value--
   }
 }
+
+const goToPage = () => {
+  const parsedPage = Number.parseInt(pageJumpInput.value, 10)
+  if (!Number.isFinite(parsedPage)) {
+    pageJumpInput.value = String(metadata.value.page)
+    return
+  }
+
+  const totalPages = Math.max(1, metadata.value.totalPages)
+  const targetPage = Math.min(totalPages, Math.max(1, parsedPage))
+
+  page.value = targetPage
+  pageJumpInput.value = String(targetPage)
+}
+
+watch(() => metadata.value.page, (currentPage) => {
+  pageJumpInput.value = String(currentPage)
+}, { immediate: true })
 </script>
 
 <template>
@@ -48,18 +129,34 @@ const prevPage = () => {
   </div>
 
   <div class="filter-bar">
-    <label>Usuário:</label>
-    <select v-model="selectedUserId" @change="page = 1">
-      <option value="">Todos</option>
-      <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
-    </select>
-    <label>Paciente:</label>
-    <select v-model="selectedPatientId" @change="page = 1">
-      <option value="">Todos</option>
-      <option v-for="p in patients" :key="p.id" :value="p.id">{{ p.name }}</option>
-    </select>
-    <label>Data:</label>
-    <input type="date" v-model="selectedDate" @change="page = 1" />
+    <div class="filter-group">
+      <label>Usuário:</label>
+      <select v-model="selectedUserId" @change="page = 1">
+        <option value="">Todos</option>
+        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.full_name }}</option>
+      </select>
+      <div v-if="usersMetadata.totalPages > 1" class="lookup-pagination">
+        <button class="btn-sm" :disabled="userOptionsPage <= 1" @click="prevUsersPage">Anterior</button>
+        <span>Página {{ usersMetadata.page }} de {{ usersMetadata.totalPages }}</span>
+        <button class="btn-sm" :disabled="userOptionsPage >= usersMetadata.totalPages" @click="nextUsersPage">Próxima</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Paciente:</label>
+      <select v-model="selectedPatientId" @change="page = 1">
+        <option value="">Todos</option>
+        <option v-for="p in patients" :key="p.id" :value="p.id">{{ p.name }}</option>
+      </select>
+      <div v-if="patientsMetadata.totalPages > 1" class="lookup-pagination">
+        <button class="btn-sm" :disabled="patientOptionsPage <= 1" @click="prevPatientsPage">Anterior</button>
+        <span>Página {{ patientsMetadata.page }} de {{ patientsMetadata.totalPages }}</span>
+        <button class="btn-sm" :disabled="patientOptionsPage >= patientsMetadata.totalPages" @click="nextPatientsPage">Próxima</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Data:</label>
+      <input type="date" v-model="selectedDate" @change="page = 1" />
+    </div>
     <button v-if="selectedUserId || selectedPatientId || selectedDate" class="btn-sm" @click="clearFilters">✕ Limpar</button>
   </div>
 
@@ -81,6 +178,19 @@ const prevPage = () => {
       <div class="pagination">
         <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">Anterior</button>
         <span class="pagination-info">Página {{ metadata.page }} de {{ metadata.totalPages }}</span>
+        <div class="pagination-jump">
+          <label for="admin-logs-page-jump">Ir para</label>
+          <input
+            id="admin-logs-page-jump"
+            v-model="pageJumpInput"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            :max="Math.max(1, metadata.totalPages)"
+            :disabled="metadata.totalPages <= 1"
+            @keyup.enter.prevent="goToPage"
+          />
+        </div>
         <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
       </div>
     </template>

@@ -1,16 +1,18 @@
+import { buildPaginationMetadata, parsePagination } from '../../utils/pagination';
+
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
-  const where = user.role === 'admin' || user.role === 'superadmin' ? {} : { registered_by: user.userId };
-
   const query = getQuery(event);
-  const page = Math.max(1, Number(query.page) || 1);
-  const limit = Math.max(1, Number(query.limit) || 10);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(query as Record<string, unknown>, {
+    defaultLimit: 10,
+    maxLimit: 50,
+  });
+  const where = user.role === 'admin' || user.role === 'superadmin' ? {} : { registered_by: user.userId };
 
   const [patients, total] = await Promise.all([
     prisma.patient.findMany({
       where,
-      select: { id: true, name: true, cpf: true, user: { select: { username: true , full_name: true } } },
+      select: { id: true, name: true, cpf: true, user: { select: { username: true, full_name: true } } },
       orderBy: { name: 'asc' },
       skip,
       take: limit,
@@ -18,24 +20,27 @@ export default defineEventHandler(async (event) => {
     prisma.patient.count({ where }),
   ]);
 
-  // get last prescription date for each patient
-  for (const patient of patients) {
-    const lastPrescription = await prisma.prescription.findFirst({
-      where: { patient_id: patient.id },
-      orderBy: { date_prescribed: 'desc' },
-      select: { date_prescribed: true },
-    });
-    (patient as any).last_prescription_date = lastPrescription ? lastPrescription.date_prescribed.toISOString().split('T')[0] : null;
-  }
+  const patientIds = patients.map((patient) => patient.id);
+  const latestPrescriptions = patientIds.length
+    ? await prisma.prescription.groupBy({
+      by: ['patient_id'],
+      where: { patient_id: { in: patientIds } },
+      _max: { date_prescribed: true },
+    })
+    : [];
 
+  const lastPrescriptionMap = new Map(
+    latestPrescriptions.map((item) => [
+      item.patient_id,
+      item._max.date_prescribed ? item._max.date_prescribed.toISOString().slice(0, 10) : null,
+    ]),
+  );
 
   return {
-    data: patients,
-    metadata: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    }
+    data: patients.map((patient) => ({
+      ...patient,
+      last_prescription_date: lastPrescriptionMap.get(patient.id) ?? null,
+    })),
+    metadata: buildPaginationMetadata(total, page, limit),
   };
 })

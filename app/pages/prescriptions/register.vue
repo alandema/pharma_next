@@ -2,30 +2,72 @@
 import { useDateFormatting } from '../../composables/useDateFormatting'
 
 type Formula = { id: string; name: string; information?: string | null };
+type PatientOption = { id: string; name: string };
 type PrescriptionFormulaInput = { formula_id: string; description: string };
 type PreviewResponse = { pdf_base64: string; pdf_hash: string };
+type PaginationMetadata = { total: number; page: number; limit: number; totalPages: number };
+type PaginatedResponse<T> = { data: T[]; metadata: PaginationMetadata };
 
 const route = useRoute();
 const toast = useToast();
 const { getTodayInputDate } = useDateFormatting()
 const patient_id = ref((route.query.patient_id as string) || '');
+const patientOptionsPage = ref(1);
 const date_prescribed = ref(getTodayInputDate());
 const cid_code = ref((route.query.cid_code as string) || '');
 const manual_cid = ref('');
+const formulaOptionsPage = ref(1);
 const formulasInput = ref<PrescriptionFormulaInput[]>([]);
+const selectedPatientFallback = ref<PatientOption | null>(null);
 const isPreviewing = ref(false);
 const previewPdfUrl = ref('');
 const previewPayload = ref<PreviewResponse | null>(null);
 const isSubmitting = ref(false);
+const formulaCache = ref<Record<string, Formula>>({});
 
-const [{ data: patientsResponse }, { data: cidsData }, { data: formulasResponse }] = await Promise.all([
-  useFetch<any>('/api/patients', { query: { limit: 1000 } }),
-  useAsyncData('cids', () => queryCollection('cids').first()),
-  useFetch<any>('/api/formulas', { query: { limit: 1000 } })
-]);
+const { data: cidsData } = await useAsyncData('cids', () => queryCollection('cids').first());
+const { data: patientsResponse } = await useFetch<PaginatedResponse<PatientOption>>('/api/patients', {
+  method: 'GET',
+  query: { page: patientOptionsPage, limit: 10 },
+  watch: [patientOptionsPage],
+});
+const { data: formulasResponse } = await useFetch<PaginatedResponse<Formula>>('/api/formulas', {
+  method: 'GET',
+  query: { page: formulaOptionsPage, limit: 10 },
+  watch: [formulaOptionsPage],
+});
 
-const patients = computed(() => patientsResponse.value?.data || []);
+const patients = computed<PatientOption[]>(() => patientsResponse.value?.data || []);
+const patientsMetadata = computed(() => patientsResponse.value?.metadata || { total: 0, page: 1, limit: 10, totalPages: 1 });
 const formulas = computed<Formula[]>(() => formulasResponse.value?.data || []);
+const formulasMetadata = computed(() => formulasResponse.value?.metadata || { total: 0, page: 1, limit: 10, totalPages: 1 });
+
+watch(formulas, (items) => {
+  for (const formula of items) {
+    formulaCache.value[formula.id] = formula;
+  }
+}, { immediate: true });
+
+const formulaOptions = computed<Formula[]>(() => {
+  const merged = new Map<string, Formula>();
+
+  for (const formula of formulas.value) {
+    merged.set(formula.id, formula);
+  }
+
+  for (const item of formulasInput.value) {
+    if (!item.formula_id || item.formula_id === 'free') {
+      continue;
+    }
+
+    const cached = formulaCache.value[item.formula_id];
+    if (cached) {
+      merged.set(cached.id, cached);
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
 
 const cids = computed(() => {
   const codes = cidsData.value?.codes ?? [];
@@ -60,6 +102,30 @@ const addFormula = () => {
   formulasInput.value.push({ formula_id: '', description: '' });
 };
 
+const nextPatientsPage = () => {
+  if (patientOptionsPage.value < patientsMetadata.value.totalPages) {
+    patientOptionsPage.value++;
+  }
+};
+
+const prevPatientsPage = () => {
+  if (patientOptionsPage.value > 1) {
+    patientOptionsPage.value--;
+  }
+};
+
+const nextFormulasPage = () => {
+  if (formulaOptionsPage.value < formulasMetadata.value.totalPages) {
+    formulaOptionsPage.value++;
+  }
+};
+
+const prevFormulasPage = () => {
+  if (formulaOptionsPage.value > 1) {
+    formulaOptionsPage.value--;
+  }
+};
+
 const removeFormula = (index: number) => {
   formulasInput.value.splice(index, 1);
 };
@@ -70,7 +136,7 @@ const updateFormulaDescription = (item: PrescriptionFormulaInput) => {
     return;
   }
 
-  const selected = formulas.value?.find((formula) => formula.id === item.formula_id);
+  const selected = formulaCache.value[item.formula_id] || formulaOptions.value.find((formula) => formula.id === item.formula_id);
   if (!selected || typeof selected.information !== 'string') {
     item.formula_id = '';
     item.description = '';
@@ -108,6 +174,52 @@ const buildPayload = () => {
   const finalCid = cid_code.value === 'Outro' ? manual_cid.value.trim() : cid_code.value;
 
   return { patient_id: patient_id.value, cid_code: finalCid, formulas: cleanedFormulas };
+};
+
+const ensureSelectedPatientOption = async () => {
+  if (!patient_id.value) {
+    selectedPatientFallback.value = null;
+    return;
+  }
+
+  const selectedInCurrentPage = patients.value.find((patient) => patient.id === patient_id.value);
+  if (selectedInCurrentPage) {
+    selectedPatientFallback.value = selectedInCurrentPage;
+    return;
+  }
+
+  try {
+    const selectedPatient = await $fetch<PatientOption>(`/api/patients/${patient_id.value}`, { method: 'GET' });
+    selectedPatientFallback.value = { id: selectedPatient.id, name: selectedPatient.name };
+  } catch {
+    selectedPatientFallback.value = null;
+  }
+};
+
+const hydrateFormulaCacheFromInputs = async () => {
+  const missingIds = Array.from(new Set(
+    formulasInput.value
+      .map((item) => item.formula_id)
+      .filter((id) => id && id !== 'free' && !formulaCache.value[id]),
+  ));
+
+  if (!missingIds.length) {
+    return;
+  }
+
+  const fetched = await Promise.all(missingIds.map(async (id) => {
+    try {
+      return await $fetch<Formula>(`/api/formulas/${id}`, { method: 'GET' });
+    } catch {
+      return null;
+    }
+  }));
+
+  for (const formula of fetched) {
+    if (formula) {
+      formulaCache.value[formula.id] = formula;
+    }
+  }
 };
 
 const preview = async () => {
@@ -159,6 +271,8 @@ const submit = async () => {
 };
 
 parseFormulasFromQuery();
+await hydrateFormulaCacheFromInputs();
+await ensureSelectedPatientOption();
 if (!formulasInput.value.length) addFormula();
 
 onBeforeUnmount(() => {
@@ -180,8 +294,19 @@ onBeforeUnmount(() => {
       <div class="form-row">
         <div class="form-group">
           <label>Paciente *</label>
+          <div v-if="patientsMetadata.totalPages > 1" class="lookup-pagination" style="margin-bottom:0.5rem;">
+            <button type="button" class="btn-sm" :disabled="patientOptionsPage <= 1" @click="prevPatientsPage">Anterior</button>
+            <span>Página {{ patientsMetadata.page }} de {{ patientsMetadata.totalPages }}</span>
+            <button type="button" class="btn-sm" :disabled="patientOptionsPage >= patientsMetadata.totalPages" @click="nextPatientsPage">Próxima</button>
+          </div>
           <select v-model="patient_id" required>
             <option value="" disabled>Selecione um paciente</option>
+            <option
+              v-if="selectedPatientFallback && !patients.some((patient) => patient.id === selectedPatientFallback.id)"
+              :value="selectedPatientFallback.id"
+            >
+              {{ selectedPatientFallback.name }}
+            </option>
             <option v-for="patient in patients" :key="patient.id" :value="patient.id">{{ patient.name }}</option>
           </select>
         </div>
@@ -202,6 +327,11 @@ onBeforeUnmount(() => {
       </div>
       <div class="form-group">
         <label>Fórmulas Prescritas *</label>
+        <div v-if="formulasMetadata.totalPages > 1" class="lookup-pagination" style="margin-bottom:0.75rem;">
+          <button type="button" class="btn-sm" :disabled="formulaOptionsPage <= 1" @click="prevFormulasPage">Anterior</button>
+          <span>Página {{ formulasMetadata.page }} de {{ formulasMetadata.totalPages }}</span>
+          <button type="button" class="btn-sm" :disabled="formulaOptionsPage >= formulasMetadata.totalPages" @click="nextFormulasPage">Próxima</button>
+        </div>
         <div v-for="(item, index) in formulasInput" :key="index" class="card mb-2" style="padding: .75rem;">
           <div class="form-row">
             <div class="form-group" style="flex: 1;">
@@ -209,7 +339,7 @@ onBeforeUnmount(() => {
               <select v-model="item.formula_id" @change="updateFormulaDescription(item)" required>
                 <option value="" disabled>Selecione uma fórmula</option>
                 <option value="free">*Personalizada*</option>
-                <option v-for="formula in formulas" :key="formula.id" :value="formula.id">{{ formula.name }}</option>
+                <option v-for="formula in formulaOptions" :key="formula.id" :value="formula.id">{{ formula.name }}</option>
               </select>
             </div>
             <div style="display:flex;align-items:flex-end;">

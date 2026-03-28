@@ -1,12 +1,14 @@
 import { requireAuthenticatedUser } from '../../utils/rbac';
+import { buildPaginationMetadata, parsePagination } from '../../utils/pagination';
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedUser(event)
 
   const query = getQuery(event);
-  const page = Math.max(1, Number(query.page) || 1);
-  const limit = Math.max(1, Number(query.limit) || 10);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(query as Record<string, unknown>, {
+    defaultLimit: 10,
+    maxLimit: 50,
+  });
 
   const [formulas, total] = await Promise.all([
     prisma.formulas.findMany({
@@ -20,11 +22,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: formulas,
-    metadata: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    }
+    metadata: buildPaginationMetadata(total, page, limit),
   };
 })

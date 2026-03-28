@@ -1,12 +1,14 @@
 import { requireAdminLikeUser } from '../../utils/rbac';
+import { buildPaginationMetadata, parsePagination } from '../../utils/pagination';
 
 export default defineEventHandler(async (event) => {
   requireAdminLikeUser(event)
 
   const query = getQuery(event);
-  const page = Math.max(1, Number(query.page) || 1);
-  const limit = Math.max(1, Number(query.limit) || 20);
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(query as Record<string, unknown>, {
+    defaultLimit: 20,
+    maxLimit: 50,
+  });
   const userId = query.userId as string | undefined;
   const patientId = query.patientId as string | undefined;
   const date = query.date as string | undefined;
@@ -33,11 +35,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: logs,
-    metadata: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
+    metadata: buildPaginationMetadata(total, page, limit),
   };
 })

@@ -44,7 +44,19 @@ const prescriptionSummary = (jsonFormInfo: Prescription['json_form_info']) => {
   return formulas.slice(0, 2).map((item) => item.formula_name).join(', ') + (formulas.length > 2 ? '...' : '');
 }
 
-type Prescritor = { id: string; username: string; role: string }
+type Prescritor = { id: string; username: string; role: string; full_name: string }
+
+type PaginationMetadata = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+type PaginatedResponse<T> = {
+  data: T[];
+  metadata: PaginationMetadata;
+}
 
 const route = useRoute()
 const toast = useToast()
@@ -58,11 +70,32 @@ const isAdmin = computed(() => {
 })
 const canDelete = computed(() => isAdmin.value || (me.value as any)?.userId === patient.value?.registered_by)
 
-const { data: allUsersResponse } = await useFetch<any>('/api/users/admin', { method: 'GET', query: { limit: 1000 } })
-const prescritores = computed(() => allUsersResponse.value?.data?.filter((u: any) => u.role === 'user') ?? [])
+const prescritoresPage = ref(1)
+
+const { data: allUsersResponse } = await useFetch<PaginatedResponse<Prescritor>>('/api/users/admin', {
+  method: 'GET',
+  query: { page: prescritoresPage, limit: 10, role: 'user' },
+  watch: [prescritoresPage],
+})
+
+const prescritores = computed(() => allUsersResponse.value?.data ?? [])
+const prescritoresMetadata = computed(() => allUsersResponse.value?.metadata || { page: 1, totalPages: 1 })
 const selectedPrescritorId = ref('')
 const transferError = ref('')
 const transferSuccess = ref('')
+
+const nextPrescritoresPage = () => {
+  if (prescritoresPage.value < prescritoresMetadata.value.totalPages) {
+    prescritoresPage.value++
+  }
+}
+
+const prevPrescritoresPage = () => {
+  if (prescritoresPage.value > 1) {
+    prescritoresPage.value--
+  }
+}
+
 const transferPatient = async () => {
   transferError.value = ''
   transferSuccess.value = ''
@@ -160,6 +193,11 @@ const save = async (data: Record<string, string>) => {
         </option>
       </select>
       <button class="btn-primary" @click="transferPatient" :disabled="!selectedPrescritorId">Transferir</button>
+    </div>
+    <div v-if="prescritoresMetadata.totalPages > 1" class="lookup-pagination" style="margin-top: 0.5rem;">
+      <button class="btn-sm" :disabled="prescritoresPage <= 1" @click="prevPrescritoresPage">Anterior</button>
+      <span>Página {{ prescritoresMetadata.page }} de {{ prescritoresMetadata.totalPages }}</span>
+      <button class="btn-sm" :disabled="prescritoresPage >= prescritoresMetadata.totalPages" @click="nextPrescritoresPage">Próxima</button>
     </div>
     <p v-if="transferSuccess" style="color:var(--c-success);margin-top:.5rem">{{ transferSuccess }}</p>
     <p v-if="transferError" style="color:var(--c-danger);margin-top:.5rem">{{ transferError }}</p>

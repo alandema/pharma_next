@@ -29,14 +29,33 @@ const USER_FIELD_LABELS: Record<string, string> = {
   state: 'Estado',
 }
 
+const REQUIRED_USER_PROFILE_FIELD_LABELS: Record<string, string> = {
+  full_name: 'Nome completo',
+  cpf: 'CPF',
+  gender: 'Sexo',
+  birth_date: 'Data de nascimento',
+  phone: 'Telefone',
+  council: 'Conselho',
+  council_number: 'Número do conselho',
+  council_state: 'UF do conselho',
+  zipcode: 'CEP',
+  street: 'Endereço',
+  address_number: 'Número',
+  city: 'Cidade',
+  state: 'Estado',
+}
+
 const hasRequiredValue = (value: unknown) => {
   if (value === null || value === undefined) return false
   if (typeof value === 'string') return value.trim().length > 0
   return true
 }
 
-const getMissingRequiredUserField = (data: Record<string, unknown>) => {
-  for (const [field] of Object.entries(USER_FIELD_LABELS)) {
+const getMissingRequiredUserField = (
+  data: Record<string, unknown>,
+  requiredFieldLabels: Record<string, string>,
+) => {
+  for (const field of Object.keys(requiredFieldLabels)) {
     if (!hasRequiredValue(data[field])) {
       return field
     }
@@ -177,9 +196,9 @@ export default defineEventHandler(async (event) => {
     state: 'state' in updateData ? updateData.state : currentUser.state,
   }
 
-  const missingRequiredField = getMissingRequiredUserField(finalRequiredUserData)
+  const missingRequiredField = getMissingRequiredUserField(finalRequiredUserData, REQUIRED_USER_PROFILE_FIELD_LABELS)
   if (missingRequiredField) {
-    throw createError({ statusCode: 400, statusMessage: `${USER_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
+    throw createError({ statusCode: 400, statusMessage: `${REQUIRED_USER_PROFILE_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
   }
 
   try {
