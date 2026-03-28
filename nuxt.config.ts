@@ -18,9 +18,9 @@ export default defineNuxtConfig({
     sendgridApiKey: requireEnv('SENDGRID_API_KEY'),
     alwaysSendEmails: requireEnv('ALWAYS_SEND_EMAILS'),
     blobReadWriteToken: requireEnv('BLOB_READ_WRITE_TOKEN'),
-    safeidClientId: requireEnv('SAFEID_CLIENT_ID'),
-    safeidClientSecret: requireEnv('SAFEID_CLIENT_SECRET'),
-    safeidRedirectUri: requireEnv('SAFEID_REDIRECT_URI'),
+    // safeidClientId: requireEnv('SAFEID_CLIENT_ID'),
+    // safeidClientSecret: requireEnv('SAFEID_CLIENT_SECRET'),
+    // safeidRedirectUri: requireEnv('SAFEID_REDIRECT_URI'),
     // activationTokenSecret: requireEnv('ACTIVATION_TOKEN_SECRET'),
     // activationBaseUrl: requireEnv('ACTIVATION_BASE_URL'),
     public: {
