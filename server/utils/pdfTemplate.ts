@@ -14,14 +14,12 @@ export async function generatePDFDocument(body: any, prescriber: any, patient: a
 
     // Header / Prescription Date
     doc.fontSize(12).text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'right' });
-    // Precriber information
-    doc.fontSize(12).text(`Nome: ${prescriberDisplayName}`);
     doc.moveDown();
 
     // Patient & CID Info
     doc.fontSize(14).text('Informações do Paciente', { underline: true });
     doc.fontSize(12).text(`Nome: ${patient.name || patient}`);
-    doc.fontSize(12).text(`Endereço: ${patient.street || ''} ${patient.address_number || ''} ${patient.city || ''} ${patient.state || ''}`.trim());
+    doc.fontSize(12).text(`Endereço: ${patient.street || ''} ${patient.address_number || ''} ${patient.complement || ''}, ${patient.city || ''}-${patient.state || ''}, ${patient.zipcode || ''}`.trim());
     doc.fontSize(12).text(`Telefone: ${patient.phone || ''}`);
     doc.moveDown();
     
@@ -53,6 +51,14 @@ export async function generatePDFDocument(body: any, prescriber: any, patient: a
     doc.text(`${prescriberDisplayName}`, { align: 'center' });
     if (prescriber.council && prescriber.council_number && prescriber.council_state) {
       doc.text(`${prescriber.council}: ${prescriber.council_number} / ${prescriber.council_state}`, { align: 'center' });
+    }
+    // presriber address and contact
+    const builtAddress = `${prescriber.street || ''} ${prescriber.address_number || ''} ${prescriber.complement || ''}, ${prescriber.city || ''}-${prescriber.state || ''}, ${prescriber.zipcode || ''}`.trim();
+    if (builtAddress) {
+      doc.text(builtAddress, { align: 'center' });
+    }
+    if (prescriber.phone) {
+      doc.text(`Tel: ${prescriber.phone}`, { align: 'center' });
     }
 
     doc.end();

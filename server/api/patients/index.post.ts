@@ -16,23 +16,28 @@ export default defineEventHandler(async (event) => {
   let normalizedData: any
   try {
     const country = normalizeText(body.country, { titleCase: true })
-    const mustValidateCep = isBrazilCountry(country)
+    const isBrazilPatient = isBrazilCountry(country)
+    const isInternationalPatient = Boolean(country) && !isBrazilPatient
     normalizedData = {
       name: normalizeText(body.name, { titleCase: true }),
       email: normalizeText(body.email),
       send_email: normalizeBoolean(body.send_email),
       rg: normalizeText(body.rg),
       gender: normalizeText(body.gender, { titleCase: true }),
-      cpf: normalizeBrazilCpf(body.cpf),
+      cpf: isInternationalPatient ? normalizeText(body.cpf) : normalizeBrazilCpf(body.cpf),
       birth_date: normalizeBirthDate(body.birth_date),
-      phone: normalizeBrazilPhone(body.phone, true),
-      zipcode: mustValidateCep ? normalizeBrazilCep(body.zipcode, true) : null,
+      phone: isInternationalPatient ? normalizeText(body.phone) : normalizeBrazilPhone(body.phone, true),
+      zipcode: isBrazilPatient
+        ? normalizeBrazilCep(body.zipcode, true)
+        : (isInternationalPatient ? normalizeText(body.zipcode) : null),
       street: normalizeText(body.street, { titleCase: true }),
       district: normalizeText(body.district, { titleCase: true }),
       house_number: normalizeText(body.house_number),
       additional_info: normalizeText(body.additional_info, { titleCase: true }),
       country,
-      state: normalizeText(body.state)?.toUpperCase() ?? null,
+      state: isInternationalPatient
+        ? normalizeText(body.state, { titleCase: true })
+        : normalizeText(body.state)?.toUpperCase() ?? null,
       city: normalizeText(body.city, { titleCase: true }),
       medical_history: normalizeText(body.medical_history),
     }

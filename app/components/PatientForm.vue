@@ -19,42 +19,85 @@ if (props.initial) Object.assign(f, props.initial)
 const { data: countries } = await useFetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/paises')
 const states = ref<any[]>([])
 const cities = ref<any[]>([])
-
-// Pre-load states/cities for existing data (edit mode)
-if (isBrazilCountry(f.country)) states.value = await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
-if (f.state) cities.value = await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${f.state}/municipios`)
+const isBrazilPatient = computed(() => isBrazilCountry(f.country))
+const isInternationalPatient = computed(() => {
+  const country = normalizeText(f.country, { titleCase: true })
+  return Boolean(country) && !isBrazilCountry(country)
+})
 
 watch(() => f.country, async (name) => {
-  f.state = ''
-  f.city = ''
+  const country = normalizeText(name, { titleCase: true })
+  const brazilCountry = isBrazilCountry(name)
+  const internationalCountry = Boolean(country) && !brazilCountry
+
+  if (brazilCountry) {
+    states.value = await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+    if (f.state) {
+      cities.value = await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${f.state}/municipios`)
+    } else {
+      f.city = ''
+      cities.value = []
+    }
+
+    const formattedCpf = formatCpfInput(f.cpf)
+    if (formattedCpf !== f.cpf) f.cpf = formattedCpf
+
+    const formattedPhone = formatBrazilPhoneInput(f.phone)
+    if (formattedPhone !== f.phone) f.phone = formattedPhone
+
+    const formattedZipcode = formatCepInput(f.zipcode)
+    if (formattedZipcode !== f.zipcode) f.zipcode = formattedZipcode
+    return
+  }
+
+  states.value = []
   cities.value = []
-  if (!isBrazilCountry(name)) f.zipcode = ''
-  states.value = isBrazilCountry(name) ? await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados') : []
+
+  if (!internationalCountry) {
+    const formattedCpf = formatCpfInput(f.cpf)
+    if (formattedCpf !== f.cpf) f.cpf = formattedCpf
+
+    const formattedPhone = formatBrazilPhoneInput(f.phone)
+    if (formattedPhone !== f.phone) f.phone = formattedPhone
+
+    const formattedZipcode = formatCepInput(f.zipcode)
+    if (formattedZipcode !== f.zipcode) f.zipcode = formattedZipcode
+  }
+}, { immediate: true })
+
+watch(() => f.state, async (uf) => {
+  if (!isBrazilPatient.value) return
+  f.city = ''
+  cities.value = uf ? await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`) : []
 })
-watch(() => f.state, async (uf) => { f.city = ''; cities.value = uf ? await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`) : [] })
 
 watch(() => f.phone, (value) => {
+  if (isInternationalPatient.value) return
   const formatted = formatBrazilPhoneInput(value)
   if (formatted !== value) f.phone = formatted
 }, { immediate: true })
 
 watch(() => f.zipcode, (value) => {
+  if (isInternationalPatient.value) return
   const formatted = formatCepInput(value)
   if (formatted !== value) f.zipcode = formatted
 }, { immediate: true })
 
 watch(() => f.cpf, (value) => {
+  if (isInternationalPatient.value) return
   const formatted = formatCpfInput(value)
   if (formatted !== value) f.cpf = formatted
 }, { immediate: true })
 
 const submitForm = () => {
+  const mustApplyBrazilRules = !isInternationalPatient.value
+
   if (f.birth_date && !isValidBirthDate(f.birth_date)) {
     addToast('Data de nascimento inválida.', 'error')
     return
   }
 
-  if (f.cpf && !isValidBrazilCpf(f.cpf)) {
+  if (mustApplyBrazilRules && f.cpf && !isValidBrazilCpf(f.cpf)) {
     addToast('CPF inválido. Verifique os dígitos informados.', 'error')
     return
   }
@@ -65,16 +108,18 @@ const submitForm = () => {
     email: normalizeText(f.email),
     rg: normalizeText(f.rg),
     gender: normalizeText(f.gender, { titleCase: true }),
-    cpf: formatCpfInput(f.cpf),
+    cpf: mustApplyBrazilRules ? formatCpfInput(f.cpf) : normalizeText(f.cpf),
     birth_date: normalizeText(f.birth_date),
-    phone: formatBrazilPhoneInput(f.phone),
-    zipcode: isBrazilCountry(f.country) ? formatCepInput(f.zipcode) : '',
+    phone: mustApplyBrazilRules ? formatBrazilPhoneInput(f.phone) : normalizeText(f.phone),
+    zipcode: mustApplyBrazilRules ? formatCepInput(f.zipcode) : normalizeText(f.zipcode),
     street: normalizeText(f.street, { titleCase: true }),
     district: normalizeText(f.district, { titleCase: true }),
     house_number: normalizeText(f.house_number),
     additional_info: normalizeText(f.additional_info, { titleCase: true }),
     country: normalizeText(f.country, { titleCase: true }),
-    state: normalizeText(f.state).toUpperCase(),
+    state: isInternationalPatient.value
+      ? normalizeText(f.state, { titleCase: true })
+      : (normalizeText(f.state)?.toUpperCase() ?? ''),
     city: normalizeText(f.city, { titleCase: true }),
     medical_history: normalizeText(f.medical_history),
   }
@@ -91,7 +136,7 @@ const submitForm = () => {
       <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;margin-top:1.5rem"><input type="checkbox" id="pe" v-model="f.send_email" checked="false" /><label for="pe" style="margin:0">Receber e-mails</label></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>CPF</label><input v-model="f.cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" /></div>
+      <div class="form-group"><label>{{ isInternationalPatient ? 'CPF (documento nacional)' : 'CPF' }}</label><input v-model="f.cpf" :inputmode="isInternationalPatient ? 'text' : 'numeric'" :maxlength="isInternationalPatient ? 32 : 14" :placeholder="isInternationalPatient ? 'Documento nacional' : '000.000.000-00'" /></div>
       <div class="form-group"><label>RG</label><input v-model="f.rg" placeholder="RG" /></div>
     </div>
     <div class="form-row">
@@ -99,8 +144,8 @@ const submitForm = () => {
       <div class="form-group"><label>Data de Nascimento</label><input v-model="f.birth_date" type="date" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Telefone *</label><input required v-model="f.phone" inputmode="tel" placeholder="Ex: +55 11 91234-5678" /></div>
-      <div class="form-group"><label>CEP</label><input v-model="f.zipcode" inputmode="numeric" placeholder="00000-000" /></div>
+      <div class="form-group"><label>Telefone{{ isInternationalPatient ? '' : ' *' }}</label><input v-model="f.phone" :required="!isInternationalPatient" inputmode="tel" :placeholder="isInternationalPatient ? 'Telefone local ou internacional' : 'Ex: +55 11 91234-5678'" /></div>
+      <div class="form-group"><label>{{ isInternationalPatient ? 'Código Postal' : (isBrazilPatient ? 'CEP *' : 'CEP') }}</label><input v-model="f.zipcode" :required="isBrazilPatient" :inputmode="isInternationalPatient ? 'text' : 'numeric'" :placeholder="isInternationalPatient ? 'ZIP / Código postal' : '00000-000'" /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Rua</label><input v-model="f.street" placeholder="Rua" /></div>
@@ -112,9 +157,9 @@ const submitForm = () => {
     </div>
     <div class="form-row">
       <div class="form-group"><label>País</label><select v-model="f.country"><option value="">Selecione</option><option v-for="c in countries" :key="c.id['M49']" :value="c.nome">{{ c.nome }}</option></select></div>
-      <div class="form-group"><label>Estado</label><select v-model="f.state" :disabled="!states.length"><option value="">Selecione</option><option v-for="s in states" :key="s.id" :value="s.sigla">{{ s.nome }}</option></select></div>
+      <div class="form-group"><label>Estado</label><select v-if="isBrazilPatient" v-model="f.state" :disabled="!states.length"><option value="">Selecione</option><option v-for="s in states" :key="s.id" :value="s.sigla">{{ s.nome }}</option></select><input v-else v-model="f.state" placeholder="Estado / Província / Região" /></div>
     </div>
-    <div class="form-group"><label>Cidade</label><select v-model="f.city" :disabled="!cities.length"><option value="">Selecione</option><option v-for="c in cities" :key="c.id" :value="c.nome">{{ c.nome }}</option></select></div>
+    <div class="form-group"><label>Cidade</label><select v-if="isBrazilPatient" v-model="f.city" :disabled="!cities.length"><option value="">Selecione</option><option v-for="c in cities" :key="c.id" :value="c.nome">{{ c.nome }}</option></select><input v-else v-model="f.city" placeholder="Cidade" /></div>
     <div class="form-group"><label>Histórico Médico</label><textarea v-model="f.medical_history" placeholder="Observações clínicas..." rows="4"></textarea></div>
     <button type="submit">{{ submitLabel ?? 'Salvar' }}</button>
   </form>
