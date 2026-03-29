@@ -12,7 +12,7 @@ import {
 import { requireAdminLikeUser } from '../../../utils/rbac';
 
 const config = useRuntimeConfig()
-const templateStorage = useStorage('assets/templates')
+const templateStorage = useStorage('templates')
 
 let accountActivationTemplate: string | undefined
 
