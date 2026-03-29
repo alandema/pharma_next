@@ -6,6 +6,41 @@ const removeDiacritics = (value: string) => value.normalize('NFD').replace(/[\u0
 export const useInputFormatting = () => {
   const onlyDigits = (value: unknown) => String(value ?? '').replace(DIGIT_REGEX, '')
 
+  const formatCpfInput = (value: unknown) => {
+    const digits = onlyDigits(value).slice(0, 11)
+
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+  }
+
+  const isValidBrazilCpf = (value: unknown) => {
+    const digits = onlyDigits(value)
+
+    if (digits.length !== 11) return false
+    if (/^(\d)\1{10}$/.test(digits)) return false
+
+    let firstCheckSum = 0
+    for (let index = 0; index < 9; index++) {
+      firstCheckSum += Number(digits[index]) * (10 - index)
+    }
+
+    const firstRemainder = (firstCheckSum * 10) % 11
+    const firstCheckDigit = firstRemainder === 10 ? 0 : firstRemainder
+    if (firstCheckDigit !== Number(digits[9])) return false
+
+    let secondCheckSum = 0
+    for (let index = 0; index < 10; index++) {
+      secondCheckSum += Number(digits[index]) * (11 - index)
+    }
+
+    const secondRemainder = (secondCheckSum * 10) % 11
+    const secondCheckDigit = secondRemainder === 10 ? 0 : secondRemainder
+    return secondCheckDigit === Number(digits[10])
+  }
+
   const formatBrazilPhoneInput = (value: unknown) => {
     const raw = String(value ?? '').trim()
     if (!raw) return ''
@@ -85,6 +120,8 @@ export const useInputFormatting = () => {
 
   return {
     onlyDigits,
+    formatCpfInput,
+    isValidBrazilCpf,
     formatBrazilPhoneInput,
     phoneToStoredDigits,
     formatCepInput,

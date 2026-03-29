@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { GENDER_OPTIONS } from '#shared/utils/commonOptions'
 import { AsYouType, parsePhoneNumberWithError } from 'libphonenumber-js'
-import { computed, ref } from 'vue'
+import { useInputFormatting } from '../composables/useInputFormatting'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
   prescriberId?: string
@@ -11,6 +12,7 @@ const props = defineProps<{
 const apiEndpoint = computed(() => props.prescriberId ? `/api/users/admin/${props.prescriberId}` : '/api/users/me')
 
 const { add: addToast } = useToast()
+const { formatCpfInput, isValidBrazilCpf } = useInputFormatting()
 const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
 
 const { data: meData } = await useFetch('/api/users/me')
@@ -106,6 +108,14 @@ const { data: cities } = await useAsyncData(`cities-${props.prescriberId || 'me'
   default: () => []
 })
 
+watch(() => profile.value?.cpf, (value) => {
+  if (typeof value !== 'string') return
+  const formatted = formatCpfInput(value)
+  if (formatted !== value) {
+    profile.value.cpf = formatted
+  }
+}, { immediate: true })
+
 const buildSubmitPayload = () => {
   const data = profile.value || {}
 
@@ -132,7 +142,7 @@ const buildSubmitPayload = () => {
   }
 
   if (canEditCpf.value) {
-    payload.cpf = data.cpf
+    payload.cpf = formatCpfInput(data.cpf)
   }
 
   const normalizedPassword = password.value.trim()
@@ -150,6 +160,11 @@ const handleSubmit = async () => {
     const missingField = getFirstMissingRequiredField(payload)
     if (missingField) {
       addToast(`${missingField.label} é obrigatório.`, 'error')
+      return
+    }
+
+    if (canEditCpf.value && !isValidBrazilCpf(payload.cpf)) {
+      addToast('CPF inválido. Verifique os dígitos informados.', 'error')
       return
     }
 
@@ -178,7 +193,7 @@ const handleSubmit = async () => {
       
       <div class="section-title">Informações Pessoais</div>
       <div class="form-group"><label>Nome Completo</label><input v-model="profile.full_name" /></div>
-      <div class="form-group"><label>CPF</label><input v-model="profile.cpf" :disabled="!canEditCpf" /></div>
+      <div class="form-group"><label>CPF</label><input v-model="profile.cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" :disabled="!canEditCpf" /></div>
       
       <div class="form-group"><label>Sexo</label>
         <select v-model="profile.gender"><option value="">Selecione</option><option v-for="gender in GENDER_OPTIONS" :key="gender" :value="gender">{{ gender }}</option></select>

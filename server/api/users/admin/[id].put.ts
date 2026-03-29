@@ -3,6 +3,7 @@ import { validatePassword } from '../../../utils/credentials';
 import {
   normalizeBirthDate,
   normalizeBrazilCep,
+  normalizeBrazilCpf,
   normalizeBrazilPhone,
   normalizeBoolean,
   normalizeText,
@@ -142,7 +143,7 @@ export default defineEventHandler(async (event) => {
     }
     if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
     if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
-    if ('cpf' in body) updateData.cpf = normalizeText(body.cpf)
+    if ('cpf' in body) updateData.cpf = normalizeBrazilCpf(body.cpf, true)
     if ('gender' in body) updateData.gender = normalizeText(body.gender, { titleCase: true })
     if ('birth_date' in body) updateData.birth_date = normalizeBirthDate(body.birth_date)
     if ('phone' in body) updateData.phone = normalizeBrazilPhone(body.phone)

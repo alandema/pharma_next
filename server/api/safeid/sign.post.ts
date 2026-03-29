@@ -1,3 +1,5 @@
+import { normalizeBrazilCpf, onlyDigits } from '../../utils/inputNormalization'
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { doctorCpf, doctorPassword, base64Pdf } = body
@@ -12,8 +14,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Configuração SafeID incompleta.' })
   }
 
-  if (typeof doctorCpf !== 'string' || doctorCpf.trim().length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'CPF do prescritor é obrigatório.' })
+  let doctorCpfDigits = ''
+  try {
+    doctorCpfDigits = onlyDigits(normalizeBrazilCpf(doctorCpf, true))
+  } catch (error: any) {
+    throw createError({ statusCode: 400, statusMessage: error?.message || 'CPF do prescritor inválido.' })
   }
 
   if (typeof doctorPassword !== 'string' || doctorPassword.length === 0) {
@@ -30,7 +35,7 @@ export default defineEventHandler(async (event) => {
       method: 'POST',
       body: {
         client_id: clientId,
-        login_hint: doctorCpf,
+        login_hint: doctorCpfDigits,
         redirect_uri: redirectUri,
         lifetime: 1800
       }
@@ -45,7 +50,7 @@ export default defineEventHandler(async (event) => {
       body: {
         client_id: clientId,
         client_secret: clientSecret,
-        [oauthLoginFieldKey]: doctorCpf,
+        [oauthLoginFieldKey]: doctorCpfDigits,
         password: `${authCaRes.identifierCA}${doctorPassword}`, // Concatenated as per docs
         grant_type: 'password',
         scope: 'single_signature',

@@ -10,7 +10,7 @@ const f = ref({
   zipcode: '', street: '', address_number: '', complement: '', city: '', state: ''
 })
 const { add: addToast } = useToast()
-const { formatBrazilPhoneInput, formatCepInput, isValidBirthDate, normalizeText } = useInputFormatting()
+const { formatBrazilPhoneInput, formatCepInput, formatCpfInput, isValidBrazilCpf, isValidBirthDate, normalizeText } = useInputFormatting()
 
 const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
 
@@ -36,11 +36,16 @@ watch(() => f.value.zipcode, (value) => {
   if (formatted !== value) f.value.zipcode = formatted
 })
 
+watch(() => f.value.cpf, (value) => {
+  const formatted = formatCpfInput(value)
+  if (formatted !== value) f.value.cpf = formatted
+})
+
 const normalizeForm = () => ({
   ...f.value,
   email: normalizeText(f.value.email),
   full_name: normalizeText(f.value.full_name, { titleCase: true }),
-  cpf: normalizeText(f.value.cpf),
+  cpf: formatCpfInput(f.value.cpf),
   gender: normalizeText(f.value.gender, { titleCase: true }),
   birth_date: normalizeText(f.value.birth_date),
   phone: formatBrazilPhoneInput(f.value.phone),
@@ -68,6 +73,11 @@ const submit = async () => {
     return
   }
 
+  if (!isValidBrazilCpf(payload.cpf)) {
+    addToast('CPF inválido. Verifique os dígitos informados.', 'error')
+    return
+  }
+
   try {
     await $fetch('/api/users/admin', { method: 'POST', body: payload })
     addToast('Prescritor criado como inativo. Um e-mail de ativação foi enviado.', 'success')
@@ -92,7 +102,7 @@ const submit = async () => {
       
       <div class="section-title">Informações Pessoais</div>
       <div class="form-group"><label>Nome Completo *</label><input v-model="f.full_name" required /></div>
-      <div class="form-group"><label>CPF *</label><input v-model="f.cpf" required /></div>
+      <div class="form-group"><label>CPF *</label><input v-model="f.cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" required /></div>
       <div class="form-group"><label>Gênero *</label>
         <select v-model="f.gender" required><option value="" disabled>Selecione</option><option v-for="gender in GENDER_OPTIONS" :key="gender" :value="gender">{{ gender }}</option></select>
       </div>

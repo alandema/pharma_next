@@ -3,6 +3,7 @@ import { validatePassword } from '../../utils/credentials'
 import {
   normalizeBirthDate,
   normalizeBrazilCep,
+  normalizeBrazilCpf,
   normalizeBrazilPhone,
   normalizeBoolean,
   normalizeText,
@@ -110,7 +111,7 @@ export default defineEventHandler(async (event) => {
     }
 
     if (canEditOwnIdentity && hasField('cpf')) {
-      const normalizedCpf = normalizeText(body.cpf)
+      const normalizedCpf = normalizeBrazilCpf(body.cpf, true)
       if (!normalizedCpf) {
         throw createError({ statusCode: 400, statusMessage: 'CPF é obrigatório.' })
       }
