@@ -12,7 +12,7 @@ import {
 import { requireAdminLikeUser } from '../../../utils/rbac';
 
 const config = useRuntimeConfig()
-const templateStorage = useStorage('assets:templates')
+const templateStorage = useStorage('assets:server')
 
 let accountActivationTemplate: string | undefined
 
@@ -22,9 +22,12 @@ async function getAccountActivationTemplate() {
   }
 
   const template = await templateStorage.getItem<string>('account_activation.html')
+  console.log(`${template}`);
+  console.log(typeof template);
   if (typeof template !== 'string') {
     throw createError({ statusCode: 500, statusMessage: 'Template de ativação de conta ausente.' })
   }
+  console.log('Account activation template loaded successfully.'  )
 
   accountActivationTemplate = template
   return accountActivationTemplate
@@ -184,9 +187,11 @@ async function sendActivationEmail(email: string, fullName: string, activationLi
     .replace('{{fullName}}', fullName)
     .replace('{{activationLink}}', activationLink)
 
-  await sgMail.send({
-    to: email,
-    from: config.fromEmail,
-    html,
-  })
+    await sgMail.send({
+      to: email,
+      from: config.fromEmail,
+      subject: 'Ative sua conta',
+      html,
+    })
+
 }
