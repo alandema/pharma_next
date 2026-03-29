@@ -1,9 +1,9 @@
-interface User {
+interface Prescriber {
   role: string
 }
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
-  //   console.log('Running user pages middleware for route:', to.path)
+  //   console.log('Running prescriber pages middleware for route:', to.path)
 
   // //     if (import.meta.server) {
   // //       console.log('This middleware is running on the server, skipping auth checks.')
@@ -18,13 +18,13 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   //   const headers = useRequestHeaders(['cookie'])
 
-  //   const user = await $fetch<User>('/api/users/me', {
+  //   const prescriber = await $fetch<Prescriber>('/api/users/me', {
   //     method: 'GET',
   //     credentials: 'include',
   //     headers: headers
   //   }).catch(() => null)
 
-  // if (!user) {
+  // if (!prescriber) {
   //   console.log('Invalid token, redirecting to login.')
   //   return navigateTo('/auth/login')
   // }

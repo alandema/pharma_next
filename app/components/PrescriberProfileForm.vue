@@ -4,22 +4,22 @@ import { AsYouType, parsePhoneNumberWithError } from 'libphonenumber-js'
 import { computed, ref } from 'vue'
 
 const props = defineProps<{
-  userId?: string
+  prescriberId?: string
   isAdmin?: boolean
 }>()
 
-const apiEndpoint = computed(() => props.userId ? `/api/users/admin/${props.userId}` : '/api/users/me')
+const apiEndpoint = computed(() => props.prescriberId ? `/api/users/admin/${props.prescriberId}` : '/api/users/me')
 
 const { add: addToast } = useToast()
 const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
 
 const { data: meData } = await useFetch('/api/users/me')
-const { data: userData, refresh } = await useFetch(apiEndpoint.value)
-const profile = ref<any>({ ...(userData.value || {}) })
+const { data: prescriberData, refresh } = await useFetch(apiEndpoint.value)
+const profile = ref<any>({ ...(prescriberData.value || {}) })
 const password = ref('')
 
 const isSelfProfile = computed(() => {
-  if (!props.userId) return true
+  if (!props.prescriberId) return true
   const meId = (meData.value as any)?.id ?? (meData.value as any)?.userId
   return Boolean(meId && meId === profile.value?.id)
 })
@@ -97,7 +97,7 @@ const { data: states } = await useFetch<any[]>('https://servicodados.ibge.gov.br
   default: () => []
 })
 
-const { data: cities } = await useAsyncData(`cities-${props.userId || 'me'}`, async () => {
+const { data: cities } = await useAsyncData(`cities-${props.prescriberId || 'me'}`, async () => {
   if (!profile.value.state) return []
   const res = await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${profile.value.state}/municipios`)
   return res.sort((a, b) => a.nome.localeCompare(b.nome))
@@ -128,7 +128,6 @@ const buildSubmitPayload = () => {
 
   if (canEditOwnIdentity.value) {
     payload.email = data.email
-    payload.username = data.username
   }
 
   if (canEditCpf.value) {
@@ -159,7 +158,7 @@ const handleSubmit = async () => {
     })
     addToast('Perfil atualizado com sucesso!', 'success')
     await refresh()
-    profile.value = { ...(userData.value || {}) }
+    profile.value = { ...(prescriberData.value || {}) }
     password.value = ''
   } catch (error: any) {
     addToast(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível atualizar o perfil. Verifique os dados e tente novamente.', 'error')
@@ -172,7 +171,6 @@ const handleSubmit = async () => {
     <form @submit.prevent="handleSubmit" class="grid-form">
       <div class="section-title">Informações de Acesso</div>
       <div class="form-group"><label>E-mail</label><input v-model="profile.email" :disabled="!canEditOwnIdentity" /></div>
-      <div class="form-group"><label>Usuário</label><input type="text" v-model="profile.username" :disabled="!canEditOwnIdentity" /></div>
       <div class="form-group"><label>Senha</label><input type="password" v-model="password" :disabled="!canEditPassword" placeholder="Deixe em branco para não alterar" /></div>
 
       

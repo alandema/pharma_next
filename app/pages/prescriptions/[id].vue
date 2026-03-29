@@ -16,9 +16,9 @@ type Patient = {
   state?: string | null;
 };
 
-type User = {
+type Prescriber = {
   id: string;
-  username: string;
+  email: string;
   full_name: string;
 };
 
@@ -34,7 +34,7 @@ type Prescription = {
   };
   created_at: string;
   patient: Patient;
-  user: User | null;
+  user: Prescriber | null;
 };
 
 const route = useRoute();

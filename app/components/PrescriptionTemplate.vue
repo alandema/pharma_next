@@ -15,9 +15,10 @@ type Patient = {
   state?: string | null;
 };
 
-type User = {
+type Prescriber = {
   id: string;
-  username: string;
+  full_name?: string | null;
+  email?: string | null;
 } | null;
 
 type Prescription = {
@@ -25,7 +26,7 @@ type Prescription = {
   date_prescribed: string;
   json_form_info: ParsedPrescriptionInfo;
   patient: Patient;
-  user: User;
+  user: Prescriber;
 };
 
 type ParsedPrescriptionInfo = {
@@ -176,7 +177,7 @@ const { brand } = useAppConfig();
     <div class="signature-block">
       <div class="signature-box">
         <div class="signature-line"></div>
-        <div class="prescriber">{{ prescription.user?.username ?? 'Prescritor' }}</div>
+        <div class="prescriber">{{ prescription.user?.full_name || prescription.user?.email || 'Prescritor' }}</div>
         <div class="prescriber-label">Prescritor Responsável</div>
       </div>
     </div>

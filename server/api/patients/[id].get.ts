@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
         orderBy: { date_prescribed: 'desc' },
         take: 3,
       },
-      user: { select: { id: true, username: true, full_name: true } },
+      user: { select: { id: true, email: true, full_name: true } },
     },
   });
 

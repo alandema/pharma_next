@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
       take: limit,
       orderBy: { event_time: 'desc' },
       include: {
-        user: { select: { id: true, username: true } },
+        user: { select: { id: true, full_name: true, email: true } },
         patient: { select: { id: true, name: true } },
       },
     }),

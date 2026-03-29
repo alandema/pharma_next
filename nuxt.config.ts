@@ -17,6 +17,7 @@ export default defineNuxtConfig({
     jwtExpires: requireEnv('JWT_EXPIRES'),
     sendgridApiKey: requireEnv('SENDGRID_API_KEY'),
     alwaysSendEmails: requireEnv('ALWAYS_SEND_EMAILS'),
+    fromEmail: requireEnv('FROM_EMAIL'),
     blobReadWriteToken: requireEnv('BLOB_READ_WRITE_TOKEN'),
     // safeidClientId: requireEnv('SAFEID_CLIENT_ID'),
     // safeidClientSecret: requireEnv('SAFEID_CLIENT_SECRET'),

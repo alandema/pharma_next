@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.user_id !== undefined && body.user_id !== null && body.user_id !== actor.userId) {
-    throw createError({ statusCode: 400, statusMessage: 'user_id deve corresponder ao usuário autenticado.' })
+    throw createError({ statusCode: 400, statusMessage: 'user_id deve corresponder ao prescritor autenticado.' })
   }
 
   if (body.patient_id !== undefined && body.patient_id !== null && typeof body.patient_id !== 'string') {

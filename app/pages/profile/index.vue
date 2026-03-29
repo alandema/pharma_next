@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Profile page now uses the UserProfileForm component
+// Profile page now uses the PrescriberProfileForm component
 </script>
 
 <template>
@@ -7,5 +7,5 @@
     <h1>Meu Perfil</h1>
     <button @click="navigateTo('/')">← Voltar</button>
   </div>
-  <UserProfileForm />
+  <PrescriberProfileForm />
 </template>

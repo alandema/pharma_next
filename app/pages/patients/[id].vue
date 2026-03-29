@@ -44,7 +44,7 @@ const prescriptionSummary = (jsonFormInfo: Prescription['json_form_info']) => {
   return formulas.slice(0, 2).map((item) => item.formula_name).join(', ') + (formulas.length > 2 ? '...' : '');
 }
 
-type Prescritor = { id: string; username: string; role: string; full_name: string }
+type Prescritor = { id: string; email: string; role: string; full_name: string }
 
 type PaginationMetadata = {
   total: number;
@@ -72,14 +72,14 @@ const canDelete = computed(() => isAdmin.value || (me.value as any)?.userId === 
 
 const prescritoresPage = ref(1)
 
-const { data: allUsersResponse } = await useFetch<PaginatedResponse<Prescritor>>('/api/users/admin', {
+const { data: allPrescribersResponse } = await useFetch<PaginatedResponse<Prescritor>>('/api/users/admin', {
   method: 'GET',
   query: { page: prescritoresPage, limit: 10, role: 'user' },
   watch: [prescritoresPage],
 })
 
-const prescritores = computed(() => allUsersResponse.value?.data ?? [])
-const prescritoresMetadata = computed(() => allUsersResponse.value?.metadata || { page: 1, totalPages: 1 })
+const prescritores = computed(() => allPrescribersResponse.value?.data ?? [])
+const prescritoresMetadata = computed(() => allPrescribersResponse.value?.metadata || { page: 1, totalPages: 1 })
 const selectedPrescritorId = ref('')
 const transferError = ref('')
 const transferSuccess = ref('')

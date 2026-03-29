@@ -66,6 +66,6 @@ export default defineEventHandler((event) => {
     }
   }
 
-  console.log(`User ${decoded.username} with role ${decoded.role} made a request to ${url.pathname}`); 
+  console.log(`User ${decoded.userId} with role ${decoded.role} made a request to ${url.pathname}`);
 
 })

@@ -7,7 +7,6 @@ export type AppRole = typeof ROLES[number]
 
 export type AuthUser = {
   userId: string
-  username?: string
   role: AppRole
 }
 
@@ -30,7 +29,6 @@ export const requireAuthenticatedUser = (event: H3Event): AuthUser => {
 
   return {
     userId: raw.userId,
-    username: raw.username,
     role: raw.role,
   }
 }
@@ -51,7 +49,7 @@ export const assertCanManageTargetRole = (actorRole: AppRole, targetRole: AppRol
   }
 
   if (actorRole === 'admin' && targetRole !== 'user') {
-    throw createError({ statusCode: 403, statusMessage: 'Acesso negado: administradores só podem gerenciar contas de usuário.' })
+    throw createError({ statusCode: 403, statusMessage: 'Acesso negado: administradores só podem gerenciar contas de prescritor.' })
   }
 
   if (actorRole === 'superadmin' && targetRole !== 'user' && targetRole !== 'admin') {
@@ -59,9 +57,8 @@ export const assertCanManageTargetRole = (actorRole: AppRole, targetRole: AppRol
   }
 }
 
-export const USER_SAFE_SELECT = {
+export const PRESCRIBER_SAFE_SELECT = {
   id: true,
-  username: true,
   email: true,
   send_email: true,
   role: true,

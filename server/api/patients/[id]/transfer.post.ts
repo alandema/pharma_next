@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   // Verify the target user exists and has role 'user'
   const targetPrescritor = await prisma.user.findUnique({
     where: { id: prescritor_id },
-    select: { id: true, username: true, role: true },
+    select: { id: true, full_name: true, email: true, role: true },
   });
 
   if (!targetPrescritor || targetPrescritor.role !== 'user') {
@@ -55,6 +55,6 @@ export default defineEventHandler(async (event) => {
     id: updated.id,
     name: updated.name,
     registered_by: updated.registered_by,
-    transferred_to: targetPrescritor.username,
+    transferred_to: targetPrescritor.full_name ?? targetPrescritor.email,
   };
 });

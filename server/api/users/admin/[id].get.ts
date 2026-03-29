@@ -1,28 +1,28 @@
-import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, USER_SAFE_SELECT } from '../../../utils/rbac';
+import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, PRESCRIBER_SAFE_SELECT } from '../../../utils/rbac';
 
 export default defineEventHandler(async (event) => {
   const actor = requireAdminLikeUser(event)
 
-  const user = await prisma.user.findUnique({
+  const prescriber = await prisma.user.findUnique({
     where: { id: event.context.params?.id },
-    select: USER_SAFE_SELECT,
+    select: PRESCRIBER_SAFE_SELECT,
   });
 
-  if (!user) {
+  if (!prescriber) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Usuário não encontrado.',
+      statusMessage: 'Prescritor não encontrado.',
     });
   }
 
-  if (!isKnownRole(user.role)) {
+  if (!isKnownRole(prescriber.role)) {
     throw createError({ statusCode: 500, statusMessage: 'Configuração de papel de destino inválida.' })
   }
 
-  assertCanManageTargetRole(actor.role, user.role)
+  assertCanManageTargetRole(actor.role, prescriber.role)
 
   return {
-    ...user,
-    birth_date: user.birth_date ? new Date(user.birth_date).toISOString().split('T')[0] : null,
+    ...prescriber,
+    birth_date: prescriber.birth_date ? new Date(prescriber.birth_date).toISOString().split('T')[0] : null,
   };
 })

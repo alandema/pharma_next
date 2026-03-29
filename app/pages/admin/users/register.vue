@@ -3,7 +3,7 @@ import { useInputFormatting } from '../../../composables/useInputFormatting'
 import { GENDER_OPTIONS } from '#shared/utils/commonOptions'
 
 const f = ref({
-  username: '', password: '', email: '',
+  password: '', email: '',
   send_email: true,
   full_name: '', cpf: '', gender: '', birth_date: '', phone: '',
   council: '', council_number: '', council_state: '',
@@ -38,7 +38,6 @@ watch(() => f.value.zipcode, (value) => {
 
 const normalizeForm = () => ({
   ...f.value,
-  username: normalizeText(f.value.username),
   email: normalizeText(f.value.email),
   full_name: normalizeText(f.value.full_name, { titleCase: true }),
   cpf: normalizeText(f.value.cpf),
@@ -60,7 +59,7 @@ const submit = async () => {
   const payload = normalizeForm()
 
   if (!payload.zipcode) {
-    addToast('CEP é obrigatório para usuários/profissionais.', 'error')
+    addToast('CEP é obrigatório para prescritores/profissionais.', 'error')
     return
   }
 
@@ -71,23 +70,22 @@ const submit = async () => {
 
   try {
     await $fetch('/api/users/admin', { method: 'POST', body: payload })
-    addToast('Usuário criado como inativo. Um e-mail de ativação foi enviado.', 'success')
+    addToast('Prescritor criado como inativo. Um e-mail de ativação foi enviado.', 'success')
     navigateTo('/admin/users')
   } catch (error: any) {
-    addToast(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível criar o usuário. Verifique os dados e tente novamente.', 'error')
+    addToast(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível criar o prescritor. Verifique os dados e tente novamente.', 'error')
   }
 }
 </script>
 
 <template>
   <div class="page-header">
-    <h1>Novo Usuário</h1>
+    <h1>Novo Prescritor</h1>
     <button @click="navigateTo('/admin/users')">← Voltar</button>
   </div>
   <div class="card">
     <form @submit.prevent="submit" class="grid-form">
       <div class="section-title">Informações de Acesso</div>
-      <div class="form-group"><label>Usuário Na Plataforma *</label><input v-model="f.username" required /></div>
       <div class="form-group"><label>Senha *</label><input v-model="f.password" type="password" required /></div>
       <div class="form-group"><label>Email *</label><input v-model="f.email" type="email" required /></div>
       <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;margin-top:1.5rem"><input type="checkbox" id="se_admin_register" v-model="f.send_email" /><label for="se_admin_register" style="margin:0">Receber e-mails de cópia das prescrições</label></div>
@@ -132,7 +130,7 @@ const submit = async () => {
       <div class="form-group"><label>Complemento</label><input v-model="f.complement" /></div>
 
       <div class="form-group" style="grid-column: 1 / -1">
-        <button type="submit">Criar Usuário</button>
+        <button type="submit">Criar Prescritor</button>
       </div>
     </form>
   </div>

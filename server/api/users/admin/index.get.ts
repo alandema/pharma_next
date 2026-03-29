@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
-      select: { id: true, full_name: true, username: true, role: true, is_active: true },
+      select: { id: true, full_name: true, email: true, role: true, is_active: true },
       orderBy: { full_name: 'asc' },
       skip,
       take: limit,

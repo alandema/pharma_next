@@ -13,9 +13,9 @@ type PaginatedResponse<T> = {
   metadata: PaginationMetadata;
 };
 
-type UserOption = {
+type PrescriberOption = {
   id: string;
-  username: string;
+  email: string;
   full_name: string;
   role: string;
 };
@@ -27,17 +27,17 @@ type PatientOption = {
 
 const page = ref(1)
 const pageJumpInput = ref('1')
-const userOptionsPage = ref(1)
+const prescriberOptionsPage = ref(1)
 const patientOptionsPage = ref(1)
-const selectedUserId = ref('')
+const selectedPrescriberId = ref('')
 const selectedPatientId = ref('')
 const selectedDate = ref('')
 const { formatDateTimePtBR } = useDateFormatting()
 
-const { data: usersResponse } = await useFetch<PaginatedResponse<UserOption>>('/api/users/admin', {
+const { data: prescribersResponse } = await useFetch<PaginatedResponse<PrescriberOption>>('/api/users/admin', {
   method: 'GET',
-  query: { page: userOptionsPage, limit: 10 },
-  watch: [userOptionsPage],
+  query: { page: prescriberOptionsPage, limit: 10 },
+  watch: [prescriberOptionsPage],
 })
 const { data: patientsResponse } = await useFetch<PaginatedResponse<PatientOption>>('/api/patients', {
   method: 'GET',
@@ -45,38 +45,38 @@ const { data: patientsResponse } = await useFetch<PaginatedResponse<PatientOptio
   watch: [patientOptionsPage],
 })
 
-const users = computed(() => usersResponse.value?.data || [])
+const prescribers = computed(() => prescribersResponse.value?.data || [])
 const patients = computed(() => patientsResponse.value?.data || [])
-const usersMetadata = computed(() => usersResponse.value?.metadata || { page: 1, totalPages: 1 })
+const prescribersMetadata = computed(() => prescribersResponse.value?.metadata || { page: 1, totalPages: 1 })
 const patientsMetadata = computed(() => patientsResponse.value?.metadata || { page: 1, totalPages: 1 })
 
 const { data: response } = await useFetch<any>('/api/logs', {
   method: 'GET',
-  query: { page, limit: 20, userId: selectedUserId, patientId: selectedPatientId, date: selectedDate },
-  watch: [page, selectedUserId, selectedPatientId, selectedDate],
+  query: { page, limit: 20, userId: selectedPrescriberId, patientId: selectedPatientId, date: selectedDate },
+  watch: [page, selectedPrescriberId, selectedPatientId, selectedDate],
 })
 
 const logs = computed(() => response.value?.data || [])
 const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 })
 
 const clearFilters = () => {
-  userOptionsPage.value = 1
+  prescriberOptionsPage.value = 1
   patientOptionsPage.value = 1
-  selectedUserId.value = ''
+  selectedPrescriberId.value = ''
   selectedPatientId.value = ''
   selectedDate.value = ''
   page.value = 1
 }
 
-const nextUsersPage = () => {
-  if (userOptionsPage.value < usersMetadata.value.totalPages) {
-    userOptionsPage.value++
+const nextPrescribersPage = () => {
+  if (prescriberOptionsPage.value < prescribersMetadata.value.totalPages) {
+    prescriberOptionsPage.value++
   }
 }
 
-const prevUsersPage = () => {
-  if (userOptionsPage.value > 1) {
-    userOptionsPage.value--
+const prevPrescribersPage = () => {
+  if (prescriberOptionsPage.value > 1) {
+    prescriberOptionsPage.value--
   }
 }
 
@@ -130,15 +130,15 @@ watch(() => metadata.value.page, (currentPage) => {
 
   <div class="filter-bar">
     <div class="filter-group">
-      <label>Usuário:</label>
-      <select v-model="selectedUserId" @change="page = 1">
+      <label>Prescritor:</label>
+      <select v-model="selectedPrescriberId" @change="page = 1">
         <option value="">Todos</option>
-        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.full_name }}</option>
+        <option v-for="prescriber in prescribers" :key="prescriber.id" :value="prescriber.id">{{ prescriber.full_name }}</option>
       </select>
-      <div v-if="usersMetadata.totalPages > 1" class="lookup-pagination">
-        <button class="btn-sm" :disabled="userOptionsPage <= 1" @click="prevUsersPage">Anterior</button>
-        <span>Página {{ usersMetadata.page }} de {{ usersMetadata.totalPages }}</span>
-        <button class="btn-sm" :disabled="userOptionsPage >= usersMetadata.totalPages" @click="nextUsersPage">Próxima</button>
+      <div v-if="prescribersMetadata.totalPages > 1" class="lookup-pagination">
+        <button class="btn-sm" :disabled="prescriberOptionsPage <= 1" @click="prevPrescribersPage">Anterior</button>
+        <span>Página {{ prescribersMetadata.page }} de {{ prescribersMetadata.totalPages }}</span>
+        <button class="btn-sm" :disabled="prescriberOptionsPage >= prescribersMetadata.totalPages" @click="nextPrescribersPage">Próxima</button>
       </div>
     </div>
     <div class="filter-group">
@@ -157,20 +157,20 @@ watch(() => metadata.value.page, (currentPage) => {
       <label>Data:</label>
       <input type="date" v-model="selectedDate" @change="page = 1" />
     </div>
-    <button v-if="selectedUserId || selectedPatientId || selectedDate" class="btn-sm" @click="clearFilters">✕ Limpar</button>
+    <button v-if="selectedPrescriberId || selectedPatientId || selectedDate" class="btn-sm" @click="clearFilters">✕ Limpar</button>
   </div>
 
   <div class="card">
     <template v-if="logs.length">
       <table class="list-table">
         <thead>
-          <tr><th>Data/Hora</th><th>Mensagem</th><th>Usuário</th><th>Paciente</th></tr>
+          <tr><th>Data/Hora</th><th>Mensagem</th><th>Prescritor</th><th>Paciente</th></tr>
         </thead>
         <tbody>
           <tr v-for="log in logs" :key="log.id">
             <td><span class="text-muted">{{ formatDateTimePtBR(log.event_time) }}</span></td>
             <td>{{ log.message }}</td>
-            <td><span class="text-muted">{{ log.user?.username || '—' }}</span></td>
+            <td><span class="text-muted">{{ log.user?.full_name || log.user?.email || '—' }}</span></td>
             <td><span class="text-muted">{{ log.patient?.name || '—' }}</span></td>
           </tr>
         </tbody>

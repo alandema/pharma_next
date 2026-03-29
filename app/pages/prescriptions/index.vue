@@ -17,7 +17,7 @@ type Prescription = {
   };
   user: {
     id: string;
-    username: string;
+    email: string;
     full_name: string;
   } | null;
 };

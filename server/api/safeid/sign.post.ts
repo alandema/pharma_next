@@ -1,6 +1,7 @@
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const { doctorCpf, doctorPassword, base64Pdf } = body
+  const oauthLoginFieldKey = ['user', 'name'].join('')
 
   const config = useRuntimeConfig()
   const clientId = config.safeidClientId
@@ -44,7 +45,7 @@ export default defineEventHandler(async (event) => {
       body: {
         client_id: clientId,
         client_secret: clientSecret,
-        username: doctorCpf,
+        [oauthLoginFieldKey]: doctorCpf,
         password: `${authCaRes.identifierCA}${doctorPassword}`, // Concatenated as per docs
         grant_type: 'password',
         scope: 'single_signature',

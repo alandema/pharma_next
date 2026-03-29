@@ -337,7 +337,7 @@ input:disabled, select:disabled, textarea:disabled { background: transparent; co
   letter-spacing: .05em;
 }
 .badge-admin { background: var(--c-dark); color: var(--c-gold-light); }
-.badge-user  { background: var(--c-border); color: var(--c-text-secondary); }
+.badge-prescriber  { background: var(--c-border); color: var(--c-text-secondary); }
 .badge-active   { background: var(--c-success); color: #fff; }
 .badge-inactive { background: var(--c-muted); color: #fff; }
 

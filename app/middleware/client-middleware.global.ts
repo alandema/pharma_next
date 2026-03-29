@@ -1,4 +1,4 @@
-interface User {
+interface Prescriber {
   role: string
 }
 
@@ -8,9 +8,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const allowedPaths = ['/auth/login']
   if (allowedPaths.includes(to.path)) return
 
-  let user: User
+  let prescriber: Prescriber
   try {
-    user = await $fetch<User>('/api/users/me', {
+    prescriber = await $fetch<Prescriber>('/api/users/me', {
       method: 'GET',
       credentials: 'include',
       headers: useRequestHeaders(['cookie'])
@@ -19,6 +19,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/auth/login')
   }
 
-  if (to.path.startsWith('/admin') && !isAdminRole(user.role)) return navigateTo('/')
-  if (to.path === '/' && isAdminRole(user.role)) return navigateTo('/admin')
+  if (to.path.startsWith('/admin') && !isAdminRole(prescriber.role)) return navigateTo('/')
+  if (to.path === '/' && isAdminRole(prescriber.role)) return navigateTo('/admin')
 })

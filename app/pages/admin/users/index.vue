@@ -8,7 +8,7 @@ const { data: response } = await useFetch('/api/users/admin', {
   query: { page, limit: 10 }
 });
 
-const users = computed(() => response.value?.data || []);
+const prescribers = computed(() => response.value?.data || []);
 const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 });
 
 const nextPage = () => {
@@ -45,20 +45,20 @@ watch(() => metadata.value.page, (currentPage) => {
 
 <template>
   <div class="page-header">
-    <h1>👤 Usuários</h1>
-    <button class="btn-primary" @click="navigateTo('/admin/users/register')">+ Novo Usuário</button>
+    <h1>👤 Prescritores</h1>
+    <button class="btn-primary" @click="navigateTo('/admin/users/register')">+ Novo Prescritor</button>
   </div>
   <div class="card">
-    <template v-if="users.length">
+    <template v-if="prescribers.length">
       <table class="list-table">
         <thead>
           <tr><th>Nome</th><th>Privilégio</th><th>Status</th></tr>
         </thead>
         <tbody>
-          <tr v-for="user in users" :key="user.id" @click="navigateTo(`/admin/users/${user.id}`)">
-            <td>{{ user.full_name }}</td>
-            <td style="text-align:right"><span :class="['badge', user.role === 'admin' || user.role === 'superadmin' ? 'badge-admin' : 'badge-user']">{{ user.role }}</span></td>
-            <td style="text-align:center"><span :class="['badge', user.is_active ? 'badge-active' : 'badge-inactive']">{{ user.is_active ? 'Ativo' : 'Inativo' }}</span></td>
+          <tr v-for="prescriber in prescribers" :key="prescriber.id" @click="navigateTo(`/admin/users/${prescriber.id}`)">
+            <td>{{ prescriber.full_name }}</td>
+            <td style="text-align:right"><span :class="['badge', prescriber.role === 'admin' || prescriber.role === 'superadmin' ? 'badge-admin' : 'badge-prescriber']">{{ prescriber.role }}</span></td>
+            <td style="text-align:center"><span :class="['badge', prescriber.is_active ? 'badge-active' : 'badge-inactive']">{{ prescriber.is_active ? 'Ativo' : 'Inativo' }}</span></td>
           </tr>
         </tbody>
       </table>
@@ -81,6 +81,6 @@ watch(() => metadata.value.page, (currentPage) => {
         <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
       </div>
     </template>
-    <div v-else class="empty">Nenhum usuário cadastrado.</div>
+    <div v-else class="empty">Nenhum prescritor cadastrado.</div>
   </div>
 </template>

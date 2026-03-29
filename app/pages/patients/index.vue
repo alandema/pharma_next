@@ -4,7 +4,7 @@ import { useDateFormatting } from '../../composables/useDateFormatting'
 interface Patient {
   id: string;
   name: string;
-  user: { username: string; full_name: string };
+  user: { email: string; full_name: string };
   cpf: string | null;
   last_prescription_date?: string;
 }

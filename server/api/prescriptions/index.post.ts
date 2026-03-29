@@ -4,8 +4,10 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
+const config = useRuntimeConfig();
+
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig();
+  
   const user = event.context.user;
 
   const body = await readBody<{
@@ -148,8 +150,8 @@ export default defineEventHandler(async (event) => {
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const timestamp = Date.now();
-  const sanitizedUsername = await sanitizeName(patient.name);
-  const prescriptionName = `${sanitizedUsername}_${timestamp}`;
+  const sanitizedPatientName = await sanitizeName(patient.name);
+  const prescriptionName = `${sanitizedPatientName}_${timestamp}`;
   const blob = await put(`prescriptions/${user.userId}/${dateStr}/${prescriptionName}.pdf`, attachPDFBuffer, { access: 'public' });
 
   await prisma.prescription.update({
@@ -158,18 +160,20 @@ export default defineEventHandler(async (event) => {
   });
 
 
+  const prescriberName = prescriber.full_name ?? prescriber.email ?? 'Prescritor'
+
   if (patient.email && patient.send_email) {
-    await sendPatientEmail(patient.email, patient.name, prescriber.username, blob.url);
+    await sendPatientEmail(patient.email, patient.name, prescriberName, blob.url);
   }
 
   if (prescriber.email && prescriber.send_email) {
-    await sendPrescriberEmail(prescriber.email, prescriber.username, patient.name, blob.url);
+    await sendPrescriberEmail(prescriber.email, prescriberName, patient.name, blob.url);
   }
 
   await sendPharmacyEmail(patient.name, blob.url, alwaysSendEmails);
 
 
-  await prisma.log.create({ data: { event_time: new Date(), message: `Prescritor ${user.username} fez uma prescrição para paciente ${patient.name}`, user_id: user.userId, patient_id: body.patient_id } })
+  await prisma.log.create({ data: { event_time: new Date(), message: `Prescritor ${prescriberName} fez uma prescrição para paciente ${patient.name}`, user_id: user.userId, patient_id: body.patient_id } })
 
   return {
     id: prescription.id,
@@ -188,7 +192,7 @@ async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSend
       for (const email of alwaysSendEmails) {
         await sgMail.send({
           to: email,
-          from: 'plataforma@ammafarmacia.com.br',
+          from: config.fromEmail,
           subject: `${patientName} - ${date} - Nova Prescrição Salva`,
           html: pharmacyHtml,
         });
@@ -203,7 +207,7 @@ async function sendPrescriberEmail(prescriberEmail: string, prescriberName: stri
                                .replace('{{pdfUrl}}', pdfUrl);
         await sgMail.send({
           to: prescriberEmail,
-          from: 'plataforma@ammafarmacia.com.br', 
+          from: config.fromEmail, 
           subject: `Prescrição gerada para - ${patientName}`,
           html: doctorHtml,
         });
@@ -219,7 +223,7 @@ async function sendPatientEmail(patientEmail: string, patientName: string, presc
         console.log("Sending email to patient:", patientEmail);                        
         await sgMail.send({
           to: patientEmail,
-          from: 'plataforma@ammafarmacia.com.br', 
+          from: config.fromEmail, 
           subject: 'Sua Nova Prescrição - Pharma Next',
           html: patientHtml,
         });

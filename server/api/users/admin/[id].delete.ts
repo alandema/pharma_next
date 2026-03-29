@@ -7,16 +7,16 @@ export default defineEventHandler(async (event) => {
 
   if (id === adminId) throw createError({ statusCode: 400, statusMessage: 'Não é possível excluir sua própria conta.' })
 
-  const user = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
-  if (!user) throw createError({ statusCode: 404, statusMessage: 'Usuário não encontrado.' })
+  const prescriber = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
+  if (!prescriber) throw createError({ statusCode: 404, statusMessage: 'Prescritor não encontrado.' })
 
-  if (!isKnownRole(user.role)) {
+  if (!isKnownRole(prescriber.role)) {
     throw createError({ statusCode: 500, statusMessage: 'Configuração de papel de destino inválida.' })
   }
 
-  assertCanManageTargetRole(actor.role, user.role)
+  assertCanManageTargetRole(actor.role, prescriber.role)
 
-  // Transfer all patients managed by this user to the admin performing the deletion
+  // Transfer all patients managed by this prescriber to the admin performing the deletion
   await prisma.patient.updateMany({
     where: { registered_by: id },
     data: { registered_by: adminId },

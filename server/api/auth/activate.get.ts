@@ -3,7 +3,7 @@ import { JwtPayload } from 'jsonwebtoken';
 
 type ActivationPayload = JwtPayload & {
   userId?: string;
-  username?: string;
+  email?: string;
   purpose?: string;
 };
 
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Token de ativação ausente' })
   }
 
-  const config = useRuntimeConfig(event)
+  const config = useRuntimeConfig()
   const activationSecret = config.activationTokenSecret
 
   if (!activationSecret) {
@@ -33,18 +33,24 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Token de ativação inválido' })
   }
 
-  const user = await prisma.user.findUnique({
+  const prescriber = await prisma.user.findUnique({
     where: { id: decoded.userId },
-    select: { id: true, is_active: true },
+    select: { id: true, email: true, is_active: true },
   })
 
-  if (!user) {
-    throw createError({ statusCode: 404, statusMessage: 'Usuário não encontrado' })
+  if (!prescriber) {
+    throw createError({ statusCode: 404, statusMessage: 'Prescritor não encontrado' })
   }
 
-  if (!user.is_active) {
+  const tokenEmail = typeof decoded.email === 'string' ? decoded.email.trim().toLowerCase() : ''
+  const prescriberEmail = typeof prescriber.email === 'string' ? prescriber.email.trim().toLowerCase() : ''
+  if (!tokenEmail || !prescriberEmail || tokenEmail !== prescriberEmail) {
+    throw createError({ statusCode: 400, statusMessage: 'Token de ativação inválido' })
+  }
+
+  if (!prescriber.is_active) {
     await prisma.user.update({
-      where: { id: user.id },
+      where: { id: prescriber.id },
       data: { is_active: true },
     })
   }

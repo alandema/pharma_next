@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { validateCredentials } from '../../utils/credentials'
+import { validatePassword } from '../../utils/credentials'
 import {
   normalizeBirthDate,
   normalizeBrazilCep,
@@ -9,10 +9,7 @@ import {
 } from '../../utils/inputNormalization';
 import { isAdminLike, requireAuthenticatedUser } from '../../utils/rbac';
 
-const USERNAME_REGEX = /^[a-z0-9_]+$/
-
-const USER_FIELD_LABELS: Record<string, string> = {
-  username: 'Usuário',
+const PRESCRIBER_FIELD_LABELS: Record<string, string> = {
   email: 'E-mail',
   full_name: 'Nome completo',
   cpf: 'CPF',
@@ -29,7 +26,7 @@ const USER_FIELD_LABELS: Record<string, string> = {
   state: 'Estado',
 }
 
-const REQUIRED_USER_PROFILE_FIELD_LABELS: Record<string, string> = {
+const REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS: Record<string, string> = {
   full_name: 'Nome completo',
   cpf: 'CPF',
   gender: 'Sexo',
@@ -51,7 +48,7 @@ const hasRequiredValue = (value: unknown) => {
   return true
 }
 
-const getMissingRequiredUserField = (
+const getMissingRequiredPrescriberField = (
   data: Record<string, unknown>,
   requiredFieldLabels: Record<string, string>,
 ) => {
@@ -64,13 +61,6 @@ const getMissingRequiredUserField = (
   return null
 }
 
-const validateUsername = (username: string) => {
-  if (!username) return 'Missing username or password'
-  if (username.length > 25) return 'Username must be at most 25 characters'
-  if (!USERNAME_REGEX.test(username)) return 'Username can only contain lowercase letters, numbers and _'
-  return ''
-}
-
 export default defineEventHandler(async (event) => {
   const actor = requireAuthenticatedUser(event)
   const body = await readBody<Record<string, unknown>>(event).catch(() => {
@@ -81,10 +71,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
   }
 
-  const currentUser = await prisma.user.findUnique({
+  const currentPrescriber = await prisma.user.findUnique({
     where: { id: actor.userId },
     select: {
-      username: true,
       email: true,
       send_email: true,
       full_name: true,
@@ -103,8 +92,8 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  if (!currentUser) {
-    throw createError({ statusCode: 404, statusMessage: 'Usuário não encontrado' })
+  if (!currentPrescriber) {
+    throw createError({ statusCode: 404, statusMessage: 'Prescritor não encontrado' })
   }
 
   const canEditOwnIdentity = isAdminLike(actor.role)
@@ -117,19 +106,7 @@ export default defineEventHandler(async (event) => {
       if (!normalizedEmail) {
         throw createError({ statusCode: 400, statusMessage: 'E-mail é obrigatório.' })
       }
-      updateData.email = normalizedEmail
-    }
-
-    if (canEditOwnIdentity && hasField('username')) {
-      const normalizedUsername = normalizeText(body.username)
-      if (!normalizedUsername) {
-        throw createError({ statusCode: 400, statusMessage: 'Usuário é obrigatório.' })
-      }
-      const usernameError = validateUsername(normalizedUsername)
-      if (usernameError) {
-        throw createError({ statusCode: 400, statusMessage: usernameError })
-      }
-      updateData.username = normalizedUsername
+      updateData.email = normalizedEmail.toLowerCase()
     }
 
     if (canEditOwnIdentity && hasField('cpf')) {
@@ -143,8 +120,7 @@ export default defineEventHandler(async (event) => {
     if (hasField('password')) {
       const normalizedPassword = normalizeText(body.password)
       if (normalizedPassword) {
-        const finalUsername = typeof updateData.username === 'string' ? updateData.username : currentUser.username
-        const passwordError = validateCredentials(finalUsername, normalizedPassword)
+        const passwordError = validatePassword(normalizedPassword)
         if (passwordError) {
           throw createError({ statusCode: 400, statusMessage: passwordError })
         }
@@ -173,32 +149,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
   }
 
-  const finalEmail = 'email' in updateData ? updateData.email : currentUser.email
-  const finalSendEmail = 'send_email' in updateData ? updateData.send_email : currentUser.send_email
+  const finalEmail = 'email' in updateData ? updateData.email : currentPrescriber.email
+  const finalSendEmail = 'send_email' in updateData ? updateData.send_email : currentPrescriber.send_email
 
   if (finalSendEmail && !finalEmail) {
     throw createError({ statusCode: 400, statusMessage: 'E-mail é obrigatório para receber notificações.' })
   }
 
-  const finalRequiredUserData: Record<string, unknown> = {
-    full_name: 'full_name' in updateData ? updateData.full_name : currentUser.full_name,
-    cpf: 'cpf' in updateData ? updateData.cpf : currentUser.cpf,
-    gender: 'gender' in updateData ? updateData.gender : currentUser.gender,
-    birth_date: 'birth_date' in updateData ? updateData.birth_date : currentUser.birth_date,
-    phone: 'phone' in updateData ? updateData.phone : currentUser.phone,
-    council: 'council' in updateData ? updateData.council : currentUser.council,
-    council_number: 'council_number' in updateData ? updateData.council_number : currentUser.council_number,
-    council_state: 'council_state' in updateData ? updateData.council_state : currentUser.council_state,
-    zipcode: 'zipcode' in updateData ? updateData.zipcode : currentUser.zipcode,
-    street: 'street' in updateData ? updateData.street : currentUser.street,
-    address_number: 'address_number' in updateData ? updateData.address_number : currentUser.address_number,
-    city: 'city' in updateData ? updateData.city : currentUser.city,
-    state: 'state' in updateData ? updateData.state : currentUser.state,
+  const finalRequiredPrescriberData: Record<string, unknown> = {
+    full_name: 'full_name' in updateData ? updateData.full_name : currentPrescriber.full_name,
+    cpf: 'cpf' in updateData ? updateData.cpf : currentPrescriber.cpf,
+    gender: 'gender' in updateData ? updateData.gender : currentPrescriber.gender,
+    birth_date: 'birth_date' in updateData ? updateData.birth_date : currentPrescriber.birth_date,
+    phone: 'phone' in updateData ? updateData.phone : currentPrescriber.phone,
+    council: 'council' in updateData ? updateData.council : currentPrescriber.council,
+    council_number: 'council_number' in updateData ? updateData.council_number : currentPrescriber.council_number,
+    council_state: 'council_state' in updateData ? updateData.council_state : currentPrescriber.council_state,
+    zipcode: 'zipcode' in updateData ? updateData.zipcode : currentPrescriber.zipcode,
+    street: 'street' in updateData ? updateData.street : currentPrescriber.street,
+    address_number: 'address_number' in updateData ? updateData.address_number : currentPrescriber.address_number,
+    city: 'city' in updateData ? updateData.city : currentPrescriber.city,
+    state: 'state' in updateData ? updateData.state : currentPrescriber.state,
   }
 
-  const missingRequiredField = getMissingRequiredUserField(finalRequiredUserData, REQUIRED_USER_PROFILE_FIELD_LABELS)
+  const missingRequiredField = getMissingRequiredPrescriberField(finalRequiredPrescriberData, REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS)
   if (missingRequiredField) {
-    throw createError({ statusCode: 400, statusMessage: `${REQUIRED_USER_PROFILE_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
+    throw createError({ statusCode: 400, statusMessage: `${REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
   }
 
   try {
@@ -209,9 +185,6 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     if (error?.code === 'P2002') {
       const target = Array.isArray(error?.meta?.target) ? String(error.meta.target[0] ?? '') : String(error?.meta?.target ?? '')
-      if (target.includes('username')) {
-        throw createError({ statusCode: 409, statusMessage: 'Nome de usuário já existe.' })
-      }
       if (target.includes('email')) {
         throw createError({ statusCode: 409, statusMessage: 'E-mail já cadastrado.' })
       }
@@ -224,7 +197,7 @@ export default defineEventHandler(async (event) => {
     const requiredArgMatch = String(error?.message ?? '').match(/Argument `([^`]+)` must not be null/i)
     if (requiredArgMatch) {
       const field = requiredArgMatch[1] ?? ''
-      const label = USER_FIELD_LABELS[field] ?? 'Campo obrigatório'
+      const label = PRESCRIBER_FIELD_LABELS[field] ?? 'Campo obrigatório'
       throw createError({ statusCode: 400, statusMessage: `${label} é obrigatório.` })
     }
 

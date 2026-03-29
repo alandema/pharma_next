@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     include: {
       patient: true,
       user: {
-        select: { id: true, username: true, full_name: true }
+        select: { id: true, email: true, full_name: true }
       }
     },
   });

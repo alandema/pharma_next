@@ -4,24 +4,24 @@
       <div class="spinner"></div>
     </div>
 
-    <nav v-if="user" class="app-nav">
+    <nav v-if="prescriber" class="app-nav">
       <div class="nav-left">
         <div class="logo">
           <img src="/header.png" alt="Logo da AMMA" />
         </div>
-        <span class="nav-home" @click="navigateTo(isAdminRole(user.role) ? '/admin' : '/')">Início</span>
+        <span class="nav-home" @click="navigateTo(isAdminRole(prescriber.role) ? '/admin' : '/')">Início</span>
       </div>
       <div class="nav-actions">
-        <span class="text-muted" style="font-size:.8rem; cursor:pointer;" @click="navigateTo('/profile')">{{ user.username }}</span>
+        <span class="text-muted" style="font-size:.8rem; cursor:pointer;" @click="navigateTo('/profile')">{{ prescriber.full_name || prescriber.email }}</span>
         <button class="btn-sm" @click="handleLogout">Sair</button>
       </div>
     </nav>
 
-    <main :class="user ? 'app-main' : ''">
+    <main :class="prescriber ? 'app-main' : ''">
       <NuxtPage />
     </main>
 
-    <footer v-if="user" class="app-footer">
+    <footer v-if="prescriber" class="app-footer">
       © {{ new Date().getFullYear() }} {{ brand.name }} — Todos os direitos reservados
     </footer>
 
@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-interface User { userId: number; username: string; role: string }
+interface Prescriber { id: string; email: string; full_name: string; role: string }
 
 const isAdminRole = (role?: string) => role === 'admin' || role === 'superadmin'
 
@@ -39,7 +39,7 @@ useHead({ title: brand.name })
 
 const { isLoading } = useLoadingIndicator()
 
-const { data: user } = await useFetch<User>('/api/users/me', {
+const { data: prescriber } = await useFetch<Prescriber>('/api/users/me', {
   key: useRoute().path,
   default: () => undefined,
   onResponseError: () => {}

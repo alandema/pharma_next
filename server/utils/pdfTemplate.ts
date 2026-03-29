@@ -10,19 +10,26 @@ export async function generatePDFDocument(body: any, prescriber: any, patient: a
     });
     doc.on('error', reject);
 
+    const prescriberDisplayName = prescriber.full_name || prescriber.email || prescriber;
+
     // Header / Prescription Date
     doc.fontSize(12).text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'right' });
+    // Precriber information
+    doc.fontSize(12).text(`Nome: ${prescriberDisplayName}`);
     doc.moveDown();
 
     // Patient & CID Info
     doc.fontSize(14).text('Informações do Paciente', { underline: true });
     doc.fontSize(12).text(`Nome: ${patient.name || patient}`);
-    if (body?.cid_code) {
-      doc.text(`CID: ${body.cid_code}`);
-    }
+    doc.fontSize(12).text(`Endereço: ${patient.street || ''} ${patient.address_number || ''} ${patient.city || ''} ${patient.state || ''}`.trim());
+    doc.fontSize(12).text(`Telefone: ${patient.phone || ''}`);
     doc.moveDown();
     
     // Formulas / Medicines
+        if (body?.cid_code) {
+      doc.text(`CID: ${body.cid_code}`);
+    }
+    doc.moveDown();
     doc.fontSize(14).text('Prescrição', { underline: true });
     doc.moveDown();
 
@@ -43,7 +50,7 @@ export async function generatePDFDocument(body: any, prescriber: any, patient: a
     // Prescriber Info (Footer-ish)
     doc.moveDown(4);
     doc.fontSize(12).text('_____________________________________', { align: 'center' });
-    doc.text(`${prescriber.full_name || prescriber.username || prescriber}`, { align: 'center' });
+    doc.text(`${prescriberDisplayName}`, { align: 'center' });
     if (prescriber.council && prescriber.council_number && prescriber.council_state) {
       doc.text(`${prescriber.council}: ${prescriber.council_number} / ${prescriber.council_state}`, { align: 'center' });
     }

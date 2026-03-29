@@ -1,4 +1,4 @@
-interface User {
+interface Prescriber {
   role: string
 }
 
@@ -7,19 +7,19 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
 
   //   const headers = useRequestHeaders(['cookie'])
 
-  //   const user = await $fetch<User>('/api/users/me', {
+  //   const prescriber = await $fetch<Prescriber>('/api/users/me', {
   //     method: 'GET',
   //     credentials: 'include',
   //     headers: headers
   //   }).catch(() => null)
 
-  // if (!user) {
+  // if (!prescriber) {
   //   console.log('Invalid token for admin, redirecting to login.')
   //   return navigateTo('/auth/login')
   // }
 
-  // if (user.role !== 'admin') {
-  //   console.log('User is not admin, redirecting to home.')
+  // if (prescriber.role !== 'admin') {
+  //   console.log('Prescriber is not admin, redirecting to home.')
   //   return navigateTo('/')
   // }
 })

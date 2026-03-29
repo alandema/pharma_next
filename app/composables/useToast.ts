@@ -2,7 +2,6 @@ const toasts = ref<{ id: number; message: string; type: 'error' | 'warning' | 's
 let nextId = 0
 
 const FIELD_LABELS: Record<string, string> = {
-  username: 'Usuário',
   email: 'E-mail',
   phone: 'Telefone',
   full_name: 'Nome completo',

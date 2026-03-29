@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { validateCredentials } from '../../../utils/credentials';
+import { validatePassword } from '../../../utils/credentials';
 import {
   normalizeBirthDate,
   normalizeBrazilCep,
@@ -7,10 +7,9 @@ import {
   normalizeBoolean,
   normalizeText,
 } from '../../../utils/inputNormalization';
-import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, USER_SAFE_SELECT } from '../../../utils/rbac';
+import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, PRESCRIBER_SAFE_SELECT } from '../../../utils/rbac';
 
-const USER_FIELD_LABELS: Record<string, string> = {
-  username: 'Usuário',
+const PRESCRIBER_FIELD_LABELS: Record<string, string> = {
   email: 'E-mail',
   full_name: 'Nome completo',
   cpf: 'CPF',
@@ -27,7 +26,7 @@ const USER_FIELD_LABELS: Record<string, string> = {
   state: 'Estado',
 }
 
-const REQUIRED_USER_PROFILE_FIELD_LABELS: Record<string, string> = {
+const REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS: Record<string, string> = {
   full_name: 'Nome completo',
   cpf: 'CPF',
   gender: 'Sexo',
@@ -49,7 +48,7 @@ const hasRequiredValue = (value: unknown) => {
   return true
 }
 
-const getMissingRequiredUserField = (
+const getMissingRequiredPrescriberField = (
   data: Record<string, unknown>,
   requiredFieldLabels: Record<string, string>,
 ) => {
@@ -62,12 +61,9 @@ const getMissingRequiredUserField = (
   return null
 }
 
-const toFriendlyUserUpdateError = (error: any) => {
+const toFriendlyPrescriberUpdateError = (error: any) => {
   if (error?.code === 'P2002') {
     const target = Array.isArray(error?.meta?.target) ? String(error.meta.target[0] ?? '') : String(error?.meta?.target ?? '')
-    if (target.includes('username')) {
-      return createError({ statusCode: 409, statusMessage: 'Nome de usuário já existe.' })
-    }
     if (target.includes('email')) {
       return createError({ statusCode: 409, statusMessage: 'E-mail já cadastrado.' })
     }
@@ -80,13 +76,13 @@ const toFriendlyUserUpdateError = (error: any) => {
   const requiredArgMatch = String(error?.message ?? '').match(/Argument `([^`]+)` must not be null/i)
   if (requiredArgMatch) {
     const field = requiredArgMatch[1] ?? ''
-    const label = USER_FIELD_LABELS[field] ?? 'Campo obrigatório'
+    const label = PRESCRIBER_FIELD_LABELS[field] ?? 'Campo obrigatório'
     return createError({ statusCode: 400, statusMessage: `${label} é obrigatório.` })
   }
 
   return createError({
     statusCode: 400,
-    statusMessage: 'Não foi possível atualizar o usuário. Verifique os dados e tente novamente.',
+    statusMessage: 'Não foi possível atualizar o prescritor. Verifique os dados e tente novamente.',
   })
 }
 
@@ -102,16 +98,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
   }
 
-  const user = await prisma.user.findUnique({ where: { id }, select: { is_active: true, username: true, email: true, send_email: true, role: true, full_name: true, cpf: true, gender: true, birth_date: true, phone: true, council: true, council_number: true, council_state: true, zipcode: true, street: true, address_number: true, city: true, state: true } })
-  if (!user) throw createError({ statusCode: 404, statusMessage: 'Usuário não encontrado.' })
+  const prescriber = await prisma.user.findUnique({ where: { id }, select: { is_active: true, email: true, send_email: true, role: true, full_name: true, cpf: true, gender: true, birth_date: true, phone: true, council: true, council_number: true, council_state: true, zipcode: true, street: true, address_number: true, city: true, state: true } })
+  if (!prescriber) throw createError({ statusCode: 404, statusMessage: 'Prescritor não encontrado.' })
 
-  if (!isKnownRole(user.role)) {
+  if (!isKnownRole(prescriber.role)) {
     throw createError({ statusCode: 500, statusMessage: 'Configuração de papel de destino inválida.' })
   }
 
-  assertCanManageTargetRole(actor.role, user.role)
+  assertCanManageTargetRole(actor.role, prescriber.role)
 
-  if ('role' in body && body.role !== user.role) {
+  if ('role' in body && body.role !== prescriber.role) {
     throw createError({ statusCode: 400, statusMessage: 'Mudança de papel não é permitida pela aplicação.' })
   }
 
@@ -119,15 +115,15 @@ export default defineEventHandler(async (event) => {
     try {
       const updated = await prisma.user.update({
         where: { id },
-        data: { is_active: !user.is_active },
-        select: USER_SAFE_SELECT,
+        data: { is_active: !prescriber.is_active },
+        select: PRESCRIBER_SAFE_SELECT,
       })
       return {
         ...updated,
         birth_date: updated.birth_date ? new Date(updated.birth_date).toISOString().split('T')[0] : null,
       }
     } catch (error: any) {
-      throw toFriendlyUserUpdateError(error)
+      throw toFriendlyPrescriberUpdateError(error)
     }
   }
 
@@ -137,7 +133,7 @@ export default defineEventHandler(async (event) => {
     if ('password' in body) {
       const normalizedPassword = normalizeText(body.password)
       if (normalizedPassword) {
-        const passwordError = validateCredentials(user.username, normalizedPassword)
+        const passwordError = validatePassword(normalizedPassword)
         if (passwordError) {
           throw createError({ statusCode: 400, statusMessage: passwordError })
         }
@@ -163,39 +159,39 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
   }
 
-  const finalEmail = user.email
-  const finalSendEmail = 'send_email' in updateData ? updateData.send_email : user.send_email
+  const finalEmail = prescriber.email
+  const finalSendEmail = 'send_email' in updateData ? updateData.send_email : prescriber.send_email
 
   if (finalSendEmail && !finalEmail) {
     throw createError({ statusCode: 400, statusMessage: 'E-mail é obrigatório para receber notificações.' })
   }
 
-  const finalRequiredUserData: Record<string, unknown> = {
-    full_name: 'full_name' in updateData ? updateData.full_name : user.full_name,
-    cpf: 'cpf' in updateData ? updateData.cpf : user.cpf,
-    gender: 'gender' in updateData ? updateData.gender : user.gender,
-    birth_date: 'birth_date' in updateData ? updateData.birth_date : user.birth_date,
-    phone: 'phone' in updateData ? updateData.phone : user.phone,
-    council: 'council' in updateData ? updateData.council : user.council,
-    council_number: 'council_number' in updateData ? updateData.council_number : user.council_number,
-    council_state: 'council_state' in updateData ? updateData.council_state : user.council_state,
-    zipcode: 'zipcode' in updateData ? updateData.zipcode : user.zipcode,
-    street: 'street' in updateData ? updateData.street : user.street,
-    address_number: 'address_number' in updateData ? updateData.address_number : user.address_number,
-    city: 'city' in updateData ? updateData.city : user.city,
-    state: 'state' in updateData ? updateData.state : user.state,
+  const finalRequiredPrescriberData: Record<string, unknown> = {
+    full_name: 'full_name' in updateData ? updateData.full_name : prescriber.full_name,
+    cpf: 'cpf' in updateData ? updateData.cpf : prescriber.cpf,
+    gender: 'gender' in updateData ? updateData.gender : prescriber.gender,
+    birth_date: 'birth_date' in updateData ? updateData.birth_date : prescriber.birth_date,
+    phone: 'phone' in updateData ? updateData.phone : prescriber.phone,
+    council: 'council' in updateData ? updateData.council : prescriber.council,
+    council_number: 'council_number' in updateData ? updateData.council_number : prescriber.council_number,
+    council_state: 'council_state' in updateData ? updateData.council_state : prescriber.council_state,
+    zipcode: 'zipcode' in updateData ? updateData.zipcode : prescriber.zipcode,
+    street: 'street' in updateData ? updateData.street : prescriber.street,
+    address_number: 'address_number' in updateData ? updateData.address_number : prescriber.address_number,
+    city: 'city' in updateData ? updateData.city : prescriber.city,
+    state: 'state' in updateData ? updateData.state : prescriber.state,
   }
 
-  const missingRequiredField = getMissingRequiredUserField(finalRequiredUserData, REQUIRED_USER_PROFILE_FIELD_LABELS)
+  const missingRequiredField = getMissingRequiredPrescriberField(finalRequiredPrescriberData, REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS)
   if (missingRequiredField) {
-    throw createError({ statusCode: 400, statusMessage: `${REQUIRED_USER_PROFILE_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
+    throw createError({ statusCode: 400, statusMessage: `${REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
   }
 
   try {
     const updated = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: USER_SAFE_SELECT,
+      select: PRESCRIBER_SAFE_SELECT,
     })
 
     return {
@@ -203,6 +199,6 @@ export default defineEventHandler(async (event) => {
       birth_date: updated.birth_date ? new Date(updated.birth_date).toISOString().split('T')[0] : null,
     }
   } catch (error: any) {
-    throw toFriendlyUserUpdateError(error)
+    throw toFriendlyPrescriberUpdateError(error)
   }
 })

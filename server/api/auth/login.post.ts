@@ -43,30 +43,38 @@ const parseJwtExpiresToSeconds = (rawValue: string): number => {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
-  const { username, password} = body;
-  if (!username || !password) { 
+  const rawEmail = typeof body?.email === 'string' ? body.email : ''
+  const email = rawEmail.trim().toLowerCase()
+  const password = typeof body?.password === 'string' ? body.password : ''
+
+  if (!email || !password) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Usuário ou senha ausentes'
+      statusMessage: 'E-mail ou senha ausentes'
     });
   }
 
-  const existing = await prisma.user.findUnique(
-    { where: { username },
-    select: { id: true, password_hash: true, username: true, role: true, is_active: true }
-    });
+  const existing = await prisma.user.findFirst({
+    where: {
+      email: {
+        equals: email,
+        mode: 'insensitive',
+      },
+    },
+    select: { id: true, password_hash: true, role: true, is_active: true },
+  })
 
   if (!existing) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Usuário ou senha inválidos'
+      statusMessage: 'E-mail ou senha inválidos'
     });
   }
 
   if (!(await bcrypt.compare(password, existing.password_hash))) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Usuário ou senha inválidos'
+      statusMessage: 'E-mail ou senha inválidos'
     });
   }
 
@@ -75,7 +83,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!isKnownRole(existing.role)) {
-    throw createError({ statusCode: 500, statusMessage: 'Papel de usuário inválido.' })
+    throw createError({ statusCode: 500, statusMessage: 'Papel de acesso inválido.' })
   }
 
   const jwtExpires = String(config.jwtExpires || '').trim()
@@ -91,7 +99,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const token = jwt.sign(
-      { userId: existing.id, username: existing.username , role: existing.role} as JwtPayload,
+      { userId: existing.id, role: existing.role} as JwtPayload,
       JWT_SECRET!,
       { expiresIn: maxAgeSeconds }
     );
