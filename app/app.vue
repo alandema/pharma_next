@@ -9,7 +9,7 @@
         <div class="logo">
           <img src="/header.png" alt="Logo da AMMA" />
         </div>
-        <span class="nav-home" @click="navigateTo(isAdminRole(prescriber.role) ? '/admin' : '/')">Início</span>
+        <span class="nav-home" @click="navigateTo(isAdminRole(prescriber?.role) ? '/admin' : '/')">Início</span>
       </div>
       <div class="nav-actions">
         <span class="text-muted" style="font-size:.8rem; cursor:pointer;" @click="navigateTo('/profile')">{{ prescriber.full_name || prescriber.email }}</span>

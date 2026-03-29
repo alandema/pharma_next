@@ -1,8 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
-import fs from 'node:fs';
-import path from 'node:path';
+import accountActivationTemplate from '../../../templates/account_activation.html?raw';
 import { validatePassword } from '../../../utils/credentials';
 import {
   normalizeBirthDate,
@@ -162,8 +161,7 @@ export default defineEventHandler(async (event) => {
 })
 
 async function sendActivationEmail(email: string, fullName: string, activationLink: string) {
-  const templatePath = path.resolve(process.cwd(), 'server/templates/account_activation.html')
-  let html = fs.readFileSync(templatePath, 'utf-8')
+  let html = accountActivationTemplate
 
   html = html
     .replace('{{fullName}}', fullName)
