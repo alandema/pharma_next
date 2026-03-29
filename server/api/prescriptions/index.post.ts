@@ -1,6 +1,8 @@
 import sgMail from '@sendgrid/mail';
 import { put } from '@vercel/blob';
 import { createHash } from 'node:crypto';
+import { prescriptionPostBodySchema } from '../../utils/contractSchemas';
+import { readStrictBody } from '../../utils/requestValidation';
 
 const config = useRuntimeConfig();
 const templateStorage = useStorage('assets:server');
@@ -25,14 +27,7 @@ export default defineEventHandler(async (event) => {
   
   const user = event.context.user;
 
-  const body = await readBody<{
-    patient_id?: string;
-    cid_code?: string;
-    formulas?: { formula_id?: string; description?: string }[];
-    preview_only?: boolean;
-    preview_pdf_base64?: string;
-    preview_pdf_hash?: string;
-  }>(event);
+  const body = await readStrictBody(event, prescriptionPostBodySchema)
 
   const isPreviewOnly = body.preview_only === true;
 

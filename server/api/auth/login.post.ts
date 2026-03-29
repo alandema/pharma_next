@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import { JwtPayload } from 'jsonwebtoken';
+import { authLoginBodySchema } from '../../utils/contractSchemas';
+import { readStrictBody } from '../../utils/requestValidation';
 import { isKnownRole } from '../../utils/rbac';
 const config = useRuntimeConfig()
 const JWT_SECRET = config.jwtSecret
@@ -41,11 +43,11 @@ const parseJwtExpiresToSeconds = (rawValue: string): number => {
 }
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+  const body = await readStrictBody(event, authLoginBodySchema)
 
-  const rawEmail = typeof body?.email === 'string' ? body.email : ''
+  const rawEmail = body.email
   const email = rawEmail.trim().toLowerCase()
-  const password = typeof body?.password === 'string' ? body.password : ''
+  const password = body.password
 
   if (!email || !password) {
     throw createError({

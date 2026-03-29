@@ -1,13 +1,11 @@
 import bcrypt from 'bcryptjs'
+import { prescriberUpdateBodySchema } from '../../utils/contractSchemas';
 import { validatePassword } from '../../utils/credentials'
 import {
-  normalizeBirthDate,
-  normalizeBrazilCep,
-  normalizeBrazilCpf,
-  normalizeBrazilPhone,
   normalizeBoolean,
   normalizeText,
 } from '../../utils/inputNormalization';
+import { readStrictBody } from '../../utils/requestValidation';
 import { isAdminLike, requireAuthenticatedUser } from '../../utils/rbac';
 
 const PRESCRIBER_FIELD_LABELS: Record<string, string> = {
@@ -62,15 +60,15 @@ const getMissingRequiredPrescriberField = (
   return null
 }
 
+const toDbDate = (value: string | null) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export default defineEventHandler(async (event) => {
   const actor = requireAuthenticatedUser(event)
-  const body = await readBody<Record<string, unknown>>(event).catch(() => {
-    throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
-  })
-
-  if (!body || typeof body !== 'object') {
-    throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
-  }
+  const body = await readStrictBody(event, prescriberUpdateBodySchema)
 
   const currentPrescriber = await prisma.user.findUnique({
     where: { id: actor.userId },
@@ -111,7 +109,7 @@ export default defineEventHandler(async (event) => {
     }
 
     if (canEditOwnIdentity && hasField('cpf')) {
-      const normalizedCpf = normalizeBrazilCpf(body.cpf, true)
+      const normalizedCpf = normalizeText(body.cpf)
       if (!normalizedCpf) {
         throw createError({ statusCode: 400, statusMessage: 'CPF é obrigatório.' })
       }
@@ -130,13 +128,13 @@ export default defineEventHandler(async (event) => {
     }
 
     if (hasField('full_name')) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
-    if (hasField('gender')) updateData.gender = body.gender
-    if (hasField('birth_date')) updateData.birth_date = normalizeBirthDate(body.birth_date)
-    if (hasField('phone')) updateData.phone = normalizeBrazilPhone(body.phone)
+  if (hasField('gender')) updateData.gender = normalizeText(body.gender, { titleCase: true })
+  if (hasField('birth_date')) updateData.birth_date = toDbDate(normalizeText(body.birth_date))
+  if (hasField('phone')) updateData.phone = normalizeText(body.phone)
     if (hasField('council')) updateData.council = normalizeText(body.council)
     if (hasField('council_number')) updateData.council_number = normalizeText(body.council_number)
     if (hasField('council_state')) updateData.council_state = normalizeText(body.council_state)?.toUpperCase() ?? null
-    if (hasField('zipcode')) updateData.zipcode = normalizeBrazilCep(body.zipcode, true)
+  if (hasField('zipcode')) updateData.zipcode = normalizeText(body.zipcode)
     if (hasField('street')) updateData.street = normalizeText(body.street, { titleCase: true })
     if (hasField('address_number')) updateData.address_number = normalizeText(body.address_number)
     if (hasField('complement')) updateData.complement = normalizeText(body.complement, { titleCase: true })

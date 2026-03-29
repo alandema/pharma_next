@@ -1,6 +1,9 @@
+import { safeIdCallbackBodySchema } from '../../utils/contractSchemas'
+import { readStrictBody } from '../../utils/requestValidation'
+
 export default defineEventHandler(async (event) => {
   // 1. Read the POST body sent by the SafeWeb PSC
-  const body = await readBody(event)
+  const body = await readStrictBody(event, safeIdCallbackBodySchema)
   
   // 2. Check if the prescriber denied the authorization
   if (body.error === 'user_denied') { //
@@ -25,5 +28,5 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fallback for unexpected payloads
-  return createError({ statusCode: 400, message: 'Payload inválido.' })
+  throw createError({ statusCode: 400, statusMessage: 'Payload inválido.' })
 })

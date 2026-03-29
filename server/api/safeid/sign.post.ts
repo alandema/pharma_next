@@ -1,7 +1,9 @@
+import { safeIdSignBodySchema } from '../../utils/contractSchemas'
 import { normalizeBrazilCpf, onlyDigits } from '../../utils/inputNormalization'
+import { readStrictBody } from '../../utils/requestValidation'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
+  const body = await readStrictBody(event, safeIdSignBodySchema)
   const { doctorCpf, doctorPassword, base64Pdf } = body
   const oauthLoginFieldKey = ['user', 'name'].join('')
 
@@ -21,11 +23,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: error?.message || 'CPF do prescritor inválido.' })
   }
 
-  if (typeof doctorPassword !== 'string' || doctorPassword.length === 0) {
+  if (doctorPassword.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'Senha do prescritor é obrigatória.' })
   }
 
-  if (typeof base64Pdf !== 'string' || base64Pdf.length === 0) {
+  if (base64Pdf.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'Conteúdo PDF é obrigatório.' })
   }
 

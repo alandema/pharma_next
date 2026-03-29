@@ -1,12 +1,15 @@
+import { patientWriteBodySchema } from '../../utils/contractSchemas';
 import {
-  isBrazilCountry,
-  normalizeBirthDate,
-  normalizeBrazilCep,
-  normalizeBrazilCpf,
-  normalizeBrazilPhone,
   normalizeBoolean,
   normalizeText,
 } from '../../utils/inputNormalization';
+import { readStrictBody } from '../../utils/requestValidation';
+
+const toDbDate = (value: string | null) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
 
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
@@ -15,38 +18,26 @@ export default defineEventHandler(async (event) => {
     where.registered_by = user.userId;
   }
 
-  const body = await readBody(event)
+  const body = await readStrictBody(event, patientWriteBodySchema)
 
-  let normalizedData: any
-  try {
-    const country = normalizeText(body.country, { titleCase: true })
-    const isBrazilPatient = isBrazilCountry(country)
-    const isInternationalPatient = Boolean(country) && !isBrazilPatient
-    normalizedData = {
-      name: normalizeText(body.name, { titleCase: true }),
-      email: normalizeText(body.email),
-      send_email: normalizeBoolean(body.send_email),
-      rg: normalizeText(body.rg),
-      gender: normalizeText(body.gender, { titleCase: true }),
-      cpf: isInternationalPatient ? normalizeText(body.cpf) : normalizeBrazilCpf(body.cpf),
-      birth_date: normalizeBirthDate(body.birth_date),
-      phone: isInternationalPatient ? normalizeText(body.phone) : normalizeBrazilPhone(body.phone, true),
-      zipcode: isBrazilPatient
-        ? normalizeBrazilCep(body.zipcode, true)
-        : (isInternationalPatient ? normalizeText(body.zipcode) : null),
-      street: normalizeText(body.street, { titleCase: true }),
-      district: normalizeText(body.district, { titleCase: true }),
-      house_number: normalizeText(body.house_number),
-      additional_info: normalizeText(body.additional_info, { titleCase: true }),
-      country,
-      state: isInternationalPatient
-        ? normalizeText(body.state, { titleCase: true })
-        : normalizeText(body.state)?.toUpperCase() ?? null,
-      city: normalizeText(body.city, { titleCase: true }),
-      medical_history: normalizeText(body.medical_history),
-    }
-  } catch (error: any) {
-    throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
+  const normalizedData = {
+    name: normalizeText(body.name, { titleCase: true }),
+    email: normalizeText(body.email),
+    send_email: normalizeBoolean(body.send_email),
+    rg: normalizeText(body.rg),
+    gender: normalizeText(body.gender, { titleCase: true }),
+    cpf: normalizeText(body.cpf),
+    birth_date: toDbDate(normalizeText(body.birth_date)),
+    phone: normalizeText(body.phone),
+    zipcode: normalizeText(body.zipcode),
+    street: normalizeText(body.street, { titleCase: true }),
+    district: normalizeText(body.district, { titleCase: true }),
+    house_number: normalizeText(body.house_number),
+    additional_info: normalizeText(body.additional_info, { titleCase: true }),
+    country: normalizeText(body.country, { titleCase: true }),
+    state: normalizeText(body.state)?.toUpperCase() ?? null,
+    city: normalizeText(body.city, { titleCase: true }),
+    medical_history: normalizeText(body.medical_history),
   }
 
   if (!normalizedData.name) {

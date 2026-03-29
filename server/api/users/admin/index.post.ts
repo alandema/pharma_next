@@ -1,15 +1,13 @@
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
+import { prescriberCreateBodySchema } from '../../../utils/contractSchemas';
 import { validatePassword } from '../../../utils/credentials';
 import {
-  normalizeBirthDate,
-  normalizeBrazilCep,
-  normalizeBrazilCpf,
-  normalizeBrazilPhone,
   normalizeBoolean,
   normalizeText,
 } from '../../../utils/inputNormalization';
+import { readStrictBody } from '../../../utils/requestValidation';
 import { requireAdminLikeUser } from '../../../utils/rbac';
 
 const config = useRuntimeConfig()
@@ -34,9 +32,15 @@ async function getAccountActivationTemplate() {
   return accountActivationTemplate
 }
 
+const toDbDate = (value: string | null) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export default defineEventHandler(async (event) => {
   requireAdminLikeUser(event)
-  const body = await readBody(event)
+  const body = await readStrictBody(event, prescriberCreateBodySchema)
 
   if (body && typeof body === 'object' && 'role' in body && body.role !== 'user') {
     throw createError({ statusCode: 400, statusMessage: 'A criação de perfis admin/superadmin é permitida apenas via script.' })
@@ -52,27 +56,23 @@ export default defineEventHandler(async (event) => {
   }
 
   let normalizedData: any
-  try {
-    normalizedData = {
-      email: normalizeText(email)?.toLowerCase() ?? null,
-      send_email: normalizeBoolean(body.send_email),
-      full_name: normalizeText(full_name, { titleCase: true }),
-      cpf: normalizeBrazilCpf(cpf, true),
-      gender: normalizeText(gender, { titleCase: true }),
-      birth_date: normalizeBirthDate(birth_date),
-      phone: normalizeBrazilPhone(phone),
-      council: normalizeText(council),
-      council_number: normalizeText(council_number),
-      council_state: normalizeText(council_state)?.toUpperCase() ?? null,
-      zipcode: normalizeBrazilCep(zipcode, true),
-      street: normalizeText(street, { titleCase: true }),
-      address_number: normalizeText(address_number),
-      complement: normalizeText(complement, { titleCase: true }),
-      city: normalizeText(city, { titleCase: true }),
-      state: normalizeText(state)?.toUpperCase() ?? null,
-    }
-  } catch (error: any) {
-    throw createError({ statusCode: 400, statusMessage: error?.message || 'Dados inválidos' })
+  normalizedData = {
+    email: normalizeText(email)?.toLowerCase() ?? null,
+    send_email: normalizeBoolean(body.send_email),
+    full_name: normalizeText(full_name, { titleCase: true }),
+    cpf: normalizeText(cpf),
+    gender: normalizeText(gender, { titleCase: true }),
+    birth_date: toDbDate(normalizeText(birth_date)),
+    phone: normalizeText(phone),
+    council: normalizeText(council),
+    council_number: normalizeText(council_number),
+    council_state: normalizeText(council_state)?.toUpperCase() ?? null,
+    zipcode: normalizeText(zipcode),
+    street: normalizeText(street, { titleCase: true }),
+    address_number: normalizeText(address_number),
+    complement: normalizeText(complement, { titleCase: true }),
+    city: normalizeText(city, { titleCase: true }),
+    state: normalizeText(state)?.toUpperCase() ?? null,
   }
 
   if (!normalizedData.email) {
@@ -118,29 +118,48 @@ export default defineEventHandler(async (event) => {
   sgMail.setApiKey(sendgridApiKey)
 
   
-  const prescriber = await prisma.user.create({
-    data: {
-      password_hash: hash,
-      role: 'user',
-      is_active: false,
-      email: normalizedData.email,
-      send_email: normalizedData.send_email,
-      full_name: normalizedData.full_name,
-      cpf: normalizedData.cpf,
-      gender: normalizedData.gender,
-      birth_date: normalizedData.birth_date,
-      phone: normalizedData.phone,
-      council: normalizedData.council,
-      council_number: normalizedData.council_number,
-      council_state: normalizedData.council_state,
-      zipcode: normalizedData.zipcode,
-      street: normalizedData.street,
-      address_number: normalizedData.address_number,
-      complement: normalizedData.complement,
-      city: normalizedData.city,
-      state: normalizedData.state,
-    },
-  });
+  let prescriber
+  try {
+    prescriber = await prisma.user.create({
+      data: {
+        password_hash: hash,
+        role: 'user',
+        is_active: false,
+        email: normalizedData.email,
+        send_email: normalizedData.send_email,
+        full_name: normalizedData.full_name,
+        cpf: normalizedData.cpf,
+        gender: normalizedData.gender,
+        birth_date: normalizedData.birth_date,
+        phone: normalizedData.phone,
+        council: normalizedData.council,
+        council_number: normalizedData.council_number,
+        council_state: normalizedData.council_state,
+        zipcode: normalizedData.zipcode,
+        street: normalizedData.street,
+        address_number: normalizedData.address_number,
+        complement: normalizedData.complement,
+        city: normalizedData.city,
+        state: normalizedData.state,
+      },
+    })
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      const target = Array.isArray(error?.meta?.target) ? String(error.meta.target[0] ?? '') : String(error?.meta?.target ?? '')
+      if (target.includes('email')) {
+        throw createError({ statusCode: 409, statusMessage: 'E-mail já cadastrado.' })
+      }
+      if (target.includes('cpf')) {
+        throw createError({ statusCode: 409, statusMessage: 'CPF já cadastrado.' })
+      }
+      throw createError({ statusCode: 409, statusMessage: 'Valor já cadastrado.' })
+    }
+
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Não foi possível criar o prescritor. Verifique os dados e tente novamente.',
+    })
+  }
 
   const activationToken = jwt.sign(
     {

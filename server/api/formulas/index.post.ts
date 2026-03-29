@@ -1,10 +1,12 @@
 import { normalizeText } from '../../utils/inputNormalization';
+import { formulaCreateBodySchema } from '../../utils/contractSchemas';
+import { readStrictBody } from '../../utils/requestValidation';
 import { requireAdminLikeUser } from '../../utils/rbac';
 
 export default defineEventHandler(async (event) => {
   requireAdminLikeUser(event)
 
-  const body = await readBody(event)
+  const body = await readStrictBody(event, formulaCreateBodySchema)
 
   const name = normalizeText(body.name, { titleCase: true })
 
@@ -32,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const formula = await prisma.formulas.create({
     data: {
       name: name,
-      information: body.information,
+      information: typeof body.information === 'string' ? body.information : null,
     },
   })
   return {

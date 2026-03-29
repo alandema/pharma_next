@@ -198,6 +198,47 @@ const buildPayload = () => {
   return { patient_id: patient_id.value, cid_code: finalCid, formulas: cleanedFormulas };
 };
 
+const validateBeforeSubmit = () => {
+  if (!patient_id.value) {
+    toast.add('Paciente é obrigatório.', 'error')
+    return false
+  }
+
+  if (!cid_code.value) {
+    toast.add('CID é obrigatório.', 'error')
+    return false
+  }
+
+  if (cid_code.value === 'Outro' && !manual_cid.value.trim()) {
+    toast.add('Informe o CID manual quando selecionar "Outro".', 'error')
+    return false
+  }
+
+  if (formulasInput.value.length === 0) {
+    toast.add('Adicione ao menos uma fórmula.', 'error')
+    return false
+  }
+
+  if (formulasInput.value.length > 10) {
+    toast.add('Máximo de 10 fórmulas por prescrição.', 'error')
+    return false
+  }
+
+  for (const [index, item] of formulasInput.value.entries()) {
+    if (!item.formula_id) {
+      toast.add(`Selecione a fórmula ${index + 1}.`, 'error')
+      return false
+    }
+
+    if (!item.description.trim()) {
+      toast.add(`Descrição da fórmula ${index + 1} é obrigatória.`, 'error')
+      return false
+    }
+  }
+
+  return true
+}
+
 const ensureSelectedPatientOption = async () => {
   if (!patient_id.value) {
     selectedPatientFallback.value = null;
@@ -280,6 +321,9 @@ const save = async () => {
 
 const submit = async () => {
   if (isSubmitting.value) return;
+
+  if (!validateBeforeSubmit()) return;
+
   isSubmitting.value = true;
   try {
     if (isPreviewing.value) {

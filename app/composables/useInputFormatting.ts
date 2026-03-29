@@ -1,5 +1,5 @@
 const DIGIT_REGEX = /\D+/g
-import { AsYouType } from 'libphonenumber-js'
+import { AsYouType, parsePhoneNumberFromString } from 'libphonenumber-js'
 
 const removeDiacritics = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
@@ -118,6 +118,39 @@ export const useInputFormatting = () => {
     return date.getTime() <= todayUtc
   }
 
+  const isValidBrazilCep = (value: unknown) => onlyDigits(value).length === 8
+
+  const isValidBrazilPhone = (value: unknown) => {
+    const raw = String(value ?? '').trim()
+    if (!raw) return false
+
+    const parsed = raw.startsWith('+')
+      ? parsePhoneNumberFromString(raw)
+      : parsePhoneNumberFromString(raw, 'BR')
+
+    return Boolean(parsed?.isValid())
+  }
+
+  const isValidEmail = (value: unknown) => {
+    const raw = String(value ?? '').trim()
+    if (!raw) return false
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+  }
+
+  const validatePasswordPolicy = (value: unknown) => {
+    if (typeof value !== 'string') return 'Senha inválida.'
+
+    const password = value.trim()
+    if (!password) return 'Senha é obrigatória.'
+    if (password.length < 8) return 'A senha deve ter no mínimo 8 caracteres.'
+    if (password.length > 25) return 'A senha deve ter no máximo 25 caracteres.'
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      return 'A senha deve conter letras e números.'
+    }
+
+    return ''
+  }
+
   return {
     onlyDigits,
     formatCpfInput,
@@ -130,5 +163,9 @@ export const useInputFormatting = () => {
     toTitleCase,
     isBrazilCountry,
     isValidBirthDate,
+    isValidBrazilCep,
+    isValidBrazilPhone,
+    isValidEmail,
+    validatePasswordPolicy,
   }
 }

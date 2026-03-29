@@ -2,14 +2,28 @@
 const email = ref('')
 const password = ref('')
 const { add: addToast } = useToast()
+const { isValidEmail } = useInputFormatting()
 
 const { brand } = useAppConfig()
 
 const handleSubmit = async () => {
+  const normalizedEmail = email.value.trim()
+  const normalizedPassword = password.value.trim()
+
+  if (!normalizedEmail || !normalizedPassword) {
+    addToast('E-mail e senha são obrigatórios.', 'error')
+    return
+  }
+
+  if (!isValidEmail(normalizedEmail)) {
+    addToast('E-mail inválido. Informe um e-mail válido.', 'error')
+    return
+  }
+
   try {
     const res = await $fetch('/api/auth/login', {
       method: 'POST',
-      body: { email: email.value, password: password.value },
+      body: { email: normalizedEmail, password: normalizedPassword },
     })
     addToast(res.message, 'success')
     await refreshNuxtData()
