@@ -1,6 +1,5 @@
 import { createError, getValidatedQuery, getValidatedRouterParams, readValidatedBody } from 'h3'
 import type { H3Event } from 'h3'
-import type { ZodIssue } from 'zod'
 import { z } from 'zod'
 
 const ISSUE_MESSAGES = {
@@ -9,12 +8,12 @@ const ISSUE_MESSAGES = {
   invalidParams: 'Parâmetros de rota inválidos.',
 } as const
 
-const formatPath = (issue: ZodIssue) => {
+const formatPath = (issue: z.core.$ZodIssueBase) => {
   if (!issue.path.length) return 'requisição'
   return issue.path.join('.')
 }
 
-const normalizeValidationIssue = (issue: ZodIssue) => {
+const normalizeValidationIssue = (issue: z.core.$ZodIssue) => {
   if (issue.code === 'unrecognized_keys') {
     const keys = issue.keys.join(', ')
     return `A requisição contém campos não permitidos: ${keys}.`
@@ -22,11 +21,22 @@ const normalizeValidationIssue = (issue: ZodIssue) => {
 
   const path = formatPath(issue)
 
-  if (issue.code === 'invalid_type' && issue.received === 'undefined') {
+  if (issue.code === 'invalid_type' && issue.input === undefined) {
     return `Campo ${path} é obrigatório.`
   }
 
   return `Campo ${path} inválido.`
+}
+
+const toZodValidator = <TSchema extends z.ZodTypeAny>(schema: TSchema) => {
+  return (data: unknown): z.infer<TSchema> => {
+    const parsed = schema.safeParse(data)
+    if (!parsed.success) {
+      throw parsed.error
+    }
+
+    return parsed.data
+  }
 }
 
 const toRequestValidationMessage = (error: unknown, fallbackMessage: string) => {
@@ -45,7 +55,7 @@ export const readStrictBody = async <TSchema extends z.ZodTypeAny>(
   fallbackMessage: string = ISSUE_MESSAGES.invalidBody,
 ): Promise<z.infer<TSchema>> => {
   try {
-    return await readValidatedBody(event, schema)
+    return await readValidatedBody(event, toZodValidator(schema))
   } catch (error) {
     throw createError({ statusCode: 400, statusMessage: toRequestValidationMessage(error, fallbackMessage) })
   }
@@ -57,7 +67,7 @@ export const getStrictQuery = async <TSchema extends z.ZodTypeAny>(
   fallbackMessage: string = ISSUE_MESSAGES.invalidQuery,
 ): Promise<z.infer<TSchema>> => {
   try {
-    return await getValidatedQuery(event, schema)
+    return await getValidatedQuery(event, toZodValidator(schema))
   } catch (error) {
     throw createError({ statusCode: 400, statusMessage: toRequestValidationMessage(error, fallbackMessage) })
   }
@@ -69,7 +79,7 @@ export const getStrictRouterParams = async <TSchema extends z.ZodTypeAny>(
   fallbackMessage: string = ISSUE_MESSAGES.invalidParams,
 ): Promise<z.infer<TSchema>> => {
   try {
-    return await getValidatedRouterParams(event, schema)
+    return await getValidatedRouterParams(event, toZodValidator(schema))
   } catch (error) {
     throw createError({ statusCode: 400, statusMessage: toRequestValidationMessage(error, fallbackMessage) })
   }

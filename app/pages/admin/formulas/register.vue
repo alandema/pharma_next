@@ -9,8 +9,15 @@ const { normalizeText } = useInputFormatting()
 const toast = useToast()
 
 const submit = async () => {
+  const normalizedName = normalizeText(name.value, { titleCase: true })
+
+  if (!normalizedName) {
+    toast.add('Nome da fórmula é obrigatório.', 'error')
+    return
+  }
+
   const payload = {
-    name: normalizeText(name.value, { titleCase: true }),
+    name: normalizedName,
     information: information.value,
   }
 

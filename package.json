@@ -27,7 +27,7 @@
     "resend": "^6.9.4",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "^4.3.6"
+    "zod": "latest"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
