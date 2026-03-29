@@ -35,6 +35,15 @@ export default defineNuxtConfig({
     '~prisma/client': fileURLToPath(new URL('./generated/prisma', import.meta.url))
   },
 
+  nitro: {
+    serverAssets: [
+      {
+        baseName: 'templates',
+        dir: './server/templates'
+      }
+    ]
+  },
+
   ssr: false,
 
   app: {

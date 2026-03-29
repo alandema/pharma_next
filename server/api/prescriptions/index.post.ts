@@ -1,11 +1,25 @@
 import sgMail from '@sendgrid/mail';
 import { put } from '@vercel/blob';
 import { createHash } from 'node:crypto';
-import prescriptionPharmacyTemplate from '../../templates/prescription_pharmacy.html?raw';
-import prescriptionPrescriberTemplate from '../../templates/prescription_prescriber.html?raw';
-import prescriptionPatientTemplate from '../../templates/prescription_patient.html?raw';
 
 const config = useRuntimeConfig();
+const templateStorage = useStorage('assets/templates');
+const templateCache = new Map<string, string>();
+
+async function getEmailTemplate(filename: string): Promise<string> {
+  const cachedTemplate = templateCache.get(filename);
+  if (cachedTemplate) {
+    return cachedTemplate;
+  }
+
+  const template = await templateStorage.getItem<string>(filename);
+  if (typeof template !== 'string') {
+    throw createError({ statusCode: 500, statusMessage: `Template de e-mail ausente: ${filename}` });
+  }
+
+  templateCache.set(filename, template);
+  return template;
+}
 
 export default defineEventHandler(async (event) => {
   
@@ -186,7 +200,7 @@ export default defineEventHandler(async (event) => {
 
 async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSendEmails: string[]) {
   const date = new Date().toLocaleDateString('pt-BR');
-  let pharmacyHtml = prescriptionPharmacyTemplate;
+  let pharmacyHtml = await getEmailTemplate('prescription_pharmacy.html');
   pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patientName)
                              .replace('{{pdfUrl}}', pdfUrl);
   for (const email of alwaysSendEmails) {
@@ -200,7 +214,7 @@ async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSend
 }
 
 async function sendPrescriberEmail(prescriberEmail: string, prescriberName: string, patientName: string, pdfUrl: string) {
-  let doctorHtml = prescriptionPrescriberTemplate;
+  let doctorHtml = await getEmailTemplate('prescription_prescriber.html');
   doctorHtml = doctorHtml.replace('{{patientName}}', patientName)
                          .replace('{{prescriberName}}', prescriberName)
                          .replace('{{pdfUrl}}', pdfUrl);
@@ -213,7 +227,7 @@ async function sendPrescriberEmail(prescriberEmail: string, prescriberName: stri
 }
 
 async function sendPatientEmail(patientEmail: string, patientName: string, prescriberName: string, pdfUrl: string) {
-  let patientHtml = prescriptionPatientTemplate;
+  let patientHtml = await getEmailTemplate('prescription_patient.html');
   patientHtml = patientHtml.replace('{{patientName}}', patientName)
                            .replace('{{prescriberName}}', prescriberName)
                            .replace('{{pdfUrl}}', pdfUrl);

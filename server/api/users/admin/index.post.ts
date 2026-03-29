@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
-import accountActivationTemplate from '../../../templates/account_activation.html?raw';
 import { validatePassword } from '../../../utils/credentials';
 import {
   normalizeBirthDate,
@@ -13,6 +12,23 @@ import {
 import { requireAdminLikeUser } from '../../../utils/rbac';
 
 const config = useRuntimeConfig()
+const templateStorage = useStorage('assets/templates')
+
+let accountActivationTemplate: string | undefined
+
+async function getAccountActivationTemplate() {
+  if (accountActivationTemplate) {
+    return accountActivationTemplate
+  }
+
+  const template = await templateStorage.getItem<string>('account_activation.html')
+  if (typeof template !== 'string') {
+    throw createError({ statusCode: 500, statusMessage: 'Template de ativação de conta ausente.' })
+  }
+
+  accountActivationTemplate = template
+  return accountActivationTemplate
+}
 
 export default defineEventHandler(async (event) => {
   requireAdminLikeUser(event)
@@ -161,6 +177,7 @@ export default defineEventHandler(async (event) => {
 })
 
 async function sendActivationEmail(email: string, fullName: string, activationLink: string) {
+  const accountActivationTemplate = await getAccountActivationTemplate()
   let html = accountActivationTemplate
 
   html = html
