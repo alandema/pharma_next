@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 import { createHash } from 'node:crypto';
 
 const config = useRuntimeConfig();
-const templateStorage = useStorage('templates');
+const templateStorage = useStorage('assets:templates');
 const templateCache = new Map<string, string>();
 
 async function getEmailTemplate(filename: string): Promise<string> {
