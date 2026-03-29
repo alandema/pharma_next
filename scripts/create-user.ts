@@ -1,5 +1,6 @@
 
 // npx dotenv-cli -e .env.production -- npx tsx scripts/create-user.ts --email email@gmail.com --password secretePass123! --role superadmin --full_name "Name Surname"
+import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 import { PrismaClient } from '../generated/prisma/index.js';
 import { PrismaNeon } from '@prisma/adapter-neon'
