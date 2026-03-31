@@ -12,6 +12,29 @@ export async function generatePDFDocument(
   patient: any,
   options: PdfGenerationOptions = {},
 ): Promise<Buffer> {
+  const buildAddress = (address: {
+    street?: string | null
+    number?: string | null
+    complement?: string | null
+    city?: string | null
+    state?: string | null
+    zipcode?: string | null
+  }) => {
+    const streetLine = [address.street, address.number, address.complement]
+      .map((part) => `${part ?? ''}`.trim())
+      .filter(Boolean)
+      .join(' ');
+
+    const cityState = [address.city, address.state]
+      .map((part) => `${part ?? ''}`.trim())
+      .filter(Boolean)
+      .join('-');
+
+    return [streetLine, cityState, `${address.zipcode ?? ''}`.trim()]
+      .filter(Boolean)
+      .join(', ');
+  };
+
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const chunks: Buffer[] = [];
@@ -34,7 +57,15 @@ export async function generatePDFDocument(
     // Patient & CID Info
     doc.fontSize(14).text('Informações do Paciente', { underline: true });
     doc.fontSize(12).text(`Nome: ${patient.name || patient}`);
-    doc.fontSize(12).text(`Endereço: ${patient.street || ''} ${patient.address_number || ''} ${patient.complement || ''}, ${patient.city || ''}-${patient.state || ''}, ${patient.zipcode || ''}`.trim());
+    const patientAddress = buildAddress({
+      street: patient.street,
+      number: patient.house_number || patient.address_number,
+      complement: patient.additional_info || patient.complement,
+      city: patient.city,
+      state: patient.state,
+      zipcode: patient.zipcode,
+    });
+    doc.fontSize(12).text(`Endereço: ${patientAddress}`);
     doc.fontSize(12).text(`Telefone: ${patient.phone || ''}`);
     doc.moveDown();
     
@@ -72,7 +103,14 @@ export async function generatePDFDocument(
     }
 
     // presriber address and contact
-    const builtAddress = `${prescriber.street || ''} ${prescriber.address_number || ''} ${prescriber.complement || ''}, ${prescriber.city || ''}-${prescriber.state || ''}, ${prescriber.zipcode || ''}`.trim();
+    const builtAddress = buildAddress({
+      street: prescriber.street,
+      number: prescriber.address_number,
+      complement: prescriber.complement,
+      city: prescriber.city,
+      state: prescriber.state,
+      zipcode: prescriber.zipcode,
+    });
     if (builtAddress) {
       doc.text(builtAddress, { align: 'center' });
     }

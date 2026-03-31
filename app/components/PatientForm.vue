@@ -19,6 +19,7 @@ if (props.initial) Object.assign(f, props.initial)
 const { data: countries } = await useFetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/paises')
 const states = ref<any[]>([])
 const cities = ref<any[]>([])
+const sortByName = <T extends { nome: string }>(items: T[]) => [...items].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 const isBrazilPatient = computed(() => isBrazilCountry(f.country))
 const isInternationalPatient = computed(() => {
   const country = normalizeText(f.country, { titleCase: true })
@@ -31,9 +32,9 @@ watch(() => f.country, async (name) => {
   const internationalCountry = Boolean(country) && !brazilCountry
 
   if (brazilCountry) {
-    states.value = await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+    states.value = sortByName(await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados'))
     if (f.state) {
-      cities.value = await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${f.state}/municipios`)
+      cities.value = sortByName(await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${f.state}/municipios`))
     } else {
       f.city = ''
       cities.value = []
@@ -68,7 +69,7 @@ watch(() => f.country, async (name) => {
 watch(() => f.state, async (uf) => {
   if (!isBrazilPatient.value) return
   f.city = ''
-  cities.value = uf ? await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`) : []
+  cities.value = uf ? sortByName(await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`)) : []
 })
 
 watch(() => f.phone, (value) => {

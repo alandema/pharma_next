@@ -16,14 +16,15 @@ const { data: councils } = await useAsyncData('councils', () => queryCollection(
 
 const states = ref<any[]>([])
 const cities = ref<any[]>([])
+const sortByName = <T extends { nome: string }>(items: T[]) => [...items].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 
 onMounted(async () => {
-  states.value = await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+  states.value = sortByName(await $fetch<any[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados'))
 })
 
 watch(() => f.value.state, async (uf) => {
   f.value.city = ''
-  cities.value = uf ? await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`) : []
+  cities.value = uf ? sortByName(await $fetch<any[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`)) : []
 })
 
 watch(() => f.value.phone, (value) => {
