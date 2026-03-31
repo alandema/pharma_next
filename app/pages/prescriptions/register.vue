@@ -5,6 +5,15 @@ type Formula = { id: string; name: string; information?: string | null };
 type PatientOption = { id: string; name: string };
 type PrescriptionFormulaInput = { formula_id: string; description: string };
 type PreviewResponse = { pdf_base64: string; pdf_hash: string };
+type SignatureStatus = 'signed' | 'unsigned';
+type SafeIdQrStatus = 'pending_authorization' | 'authorized' | 'processing' | 'signed' | 'denied' | 'failed' | 'expired';
+type SafeIdQrStartResponse = { session_id: string; authorize_url: string; expires_at: string };
+type SafeIdQrStatusResponse = {
+  status: SafeIdQrStatus;
+  signed_pdf_base64?: string;
+  signed_pdf_hash?: string;
+  error?: string;
+};
 type PaginationMetadata = { total: number; page: number; limit: number; totalPages: number };
 type PaginatedResponse<T> = { data: T[]; metadata: PaginationMetadata };
 type QueryValue = string | null | undefined | (string | null)[];
@@ -32,6 +41,15 @@ const selectedPatientFallback = ref<PatientOption | null>(null);
 const isPreviewing = ref(false);
 const previewPdfUrl = ref('');
 const previewPayload = ref<PreviewResponse | null>(null);
+const signatureStatus = ref<SignatureStatus>('unsigned');
+
+const isPreparingSignature = ref(false);
+const isSignPanelVisible = ref(false);
+const signAuthorizeUrl = ref('');
+const signSessionId = ref('');
+const signStatusMessage = ref('');
+let signStatusPollTimer: ReturnType<typeof setInterval> | null = null;
+
 const isSubmitting = ref(false);
 const formulaCache = ref<Record<string, Formula>>({});
 
@@ -163,12 +181,35 @@ const updateFormulaDescription = (item: PrescriptionFormulaInput) => {
   item.description = selected.information;
 };
 
+const getErrorMessage = (error: unknown) => {
+  const normalized = error as { data?: { statusMessage?: string; message?: string }, statusMessage?: string, message?: string }
+  return normalized?.data?.statusMessage || normalized?.data?.message || normalized?.statusMessage || normalized?.message || 'Não foi possível concluir a operação.'
+}
+
+const stopSignaturePolling = () => {
+  if (signStatusPollTimer) {
+    clearInterval(signStatusPollTimer)
+    signStatusPollTimer = null
+  }
+}
+
+const resetSignatureFlow = () => {
+  stopSignaturePolling()
+  isSignPanelVisible.value = false
+  signSessionId.value = ''
+  signStatusMessage.value = ''
+  signAuthorizeUrl.value = ''
+  isPreparingSignature.value = false
+}
+
 const clearPreview = () => {
   if (previewPdfUrl.value) {
     URL.revokeObjectURL(previewPdfUrl.value);
   }
   previewPdfUrl.value = '';
   previewPayload.value = null;
+  signatureStatus.value = 'unsigned'
+  resetSignatureFlow()
   isPreviewing.value = false;
 };
 
@@ -180,6 +221,15 @@ const base64ToPdfUrl = (base64: string) => {
   }
   const blob = new Blob([bytes], { type: 'application/pdf' });
   return URL.createObjectURL(blob);
+};
+
+const applyPreviewData = (data: PreviewResponse) => {
+  if (previewPdfUrl.value) {
+    URL.revokeObjectURL(previewPdfUrl.value);
+  }
+  previewPayload.value = data;
+  previewPdfUrl.value = base64ToPdfUrl(data.pdf_base64);
+  isPreviewing.value = true;
 };
 
 const buildPayload = () => {
@@ -285,21 +335,127 @@ const hydrateFormulaCacheFromInputs = async () => {
   }
 };
 
-const preview = async () => {
+const requestPreview = async (targetSignatureStatus: SignatureStatus) => {
   const payload = buildPayload();
-  const data = await $fetch<PreviewResponse>('/api/prescriptions', {
+  return await $fetch<PreviewResponse>('/api/prescriptions', {
     method: 'POST',
-    body: { ...payload, preview_only: true }
+    body: {
+      ...payload,
+      preview_only: true,
+      signature_status: targetSignatureStatus,
+    },
   });
+}
 
-  if (previewPdfUrl.value) {
-    URL.revokeObjectURL(previewPdfUrl.value);
+const preview = async () => {
+  const data = await requestPreview('unsigned');
+  signatureStatus.value = 'unsigned'
+  applyPreviewData(data)
+};
+
+const pollSignatureStatus = async () => {
+  if (!signSessionId.value) {
+    return
   }
 
-  previewPayload.value = data;
-  previewPdfUrl.value = base64ToPdfUrl(data.pdf_base64);
-  isPreviewing.value = true;
-};
+  try {
+    const response = await $fetch<SafeIdQrStatusResponse>('/api/safeid/qrcode/status', {
+      method: 'GET',
+      query: {
+        session_id: signSessionId.value,
+      },
+    })
+
+    if (response.status === 'pending_authorization') {
+      signStatusMessage.value = 'Aguardando autorização na aba do SafeID.'
+      return
+    }
+
+    if (response.status === 'authorized' || response.status === 'processing') {
+      signStatusMessage.value = 'Autorização recebida. Aplicando assinatura digital no PDF...'
+      return
+    }
+
+    if (response.status === 'signed') {
+      if (typeof response.signed_pdf_base64 !== 'string' || typeof response.signed_pdf_hash !== 'string') {
+        throw new Error('SafeID não retornou o conteúdo assinado.')
+      }
+
+      applyPreviewData({
+        pdf_base64: response.signed_pdf_base64,
+        pdf_hash: response.signed_pdf_hash,
+      })
+      signatureStatus.value = 'signed'
+      resetSignatureFlow()
+      toast.add('Documento assinado digitalmente com sucesso.', 'success')
+      return
+    }
+
+    if (response.status === 'denied' || response.status === 'failed' || response.status === 'expired') {
+      const statusMessage = response.error || 'Não foi possível concluir a assinatura digital.'
+      resetSignatureFlow()
+      toast.add(statusMessage, 'error')
+    }
+  } catch (error) {
+    resetSignatureFlow()
+    toast.add(getErrorMessage(error), 'error')
+  }
+}
+
+const startSignaturePolling = () => {
+  stopSignaturePolling()
+  void pollSignatureStatus()
+  signStatusPollTimer = setInterval(() => {
+    void pollSignatureStatus()
+  }, 2500)
+}
+
+const startDigitalSignature = async () => {
+  if (isPreparingSignature.value || !isPreviewing.value || !previewPayload.value) {
+    return
+  }
+
+  let authTab: Window | null = null
+  isPreparingSignature.value = true
+  isSignPanelVisible.value = true
+  signStatusMessage.value = 'Abrindo autorização do SafeID em nova guia...'
+  try {
+    authTab = window.open('', '_blank')
+    const previewForSignature = await requestPreview('signed')
+
+    const qrSession = await $fetch<SafeIdQrStartResponse>('/api/safeid/qrcode/start', {
+      method: 'POST',
+      body: {
+        pdf_base64: previewForSignature.pdf_base64,
+        pdf_hash: previewForSignature.pdf_hash,
+      },
+    })
+
+    signSessionId.value = qrSession.session_id
+    signAuthorizeUrl.value = qrSession.authorize_url
+
+    if (authTab && !authTab.closed) {
+      authTab.location.href = qrSession.authorize_url
+    } else {
+      window.open(qrSession.authorize_url, '_blank')
+    }
+
+    signStatusMessage.value = 'A autorização foi aberta em nova guia. Conclua no SafeID e retorne para esta tela.'
+    startSignaturePolling()
+  } catch (error) {
+    if (authTab && !authTab.closed) {
+      authTab.close()
+    }
+    resetSignatureFlow()
+    toast.add(getErrorMessage(error), 'error')
+  } finally {
+    isPreparingSignature.value = false
+  }
+}
+
+const cancelSignatureFlow = () => {
+  resetSignatureFlow()
+}
 
 const save = async () => {
   const payload = buildPayload();
@@ -313,6 +469,7 @@ const save = async () => {
       ...payload,
       preview_pdf_base64: previewPayload.value.pdf_base64,
       preview_pdf_hash: previewPayload.value.pdf_hash,
+      signature_status: signatureStatus.value,
     }
   });
   clearPreview();
@@ -342,6 +499,7 @@ await ensureSelectedPatientOption();
 if (!formulasInput.value.length) addFormula();
 
 onBeforeUnmount(() => {
+  stopSignaturePolling()
   if (previewPdfUrl.value) {
     URL.revokeObjectURL(previewPdfUrl.value);
   }
@@ -430,10 +588,39 @@ onBeforeUnmount(() => {
             style="width:100%;height:75vh;border:1px solid var(--border,#ddd);border-radius:8px;background:#fff;"
           ></iframe>
         </div>
+
+        <div class="card" style="padding:1rem;margin-bottom:1rem;">
+          <div class="form-row" style="justify-content:space-between;align-items:center;gap:1rem;">
+            <div>
+              <label style="display:block;margin-bottom:.2rem;">Status da assinatura</label>
+              <strong :style="{ color: signatureStatus === 'signed' ? '#166534' : '#B91C1C' }">
+                {{ signatureStatus === 'signed' ? 'Assinado digitalmente' : 'DOCUMENTO NÃO ASSINADO' }}
+              </strong>
+            </div>
+
+            <button
+              v-if="signatureStatus !== 'signed'"
+              type="button"
+              class="btn-sm"
+              :disabled="isPreparingSignature || isSubmitting"
+              @click="startDigitalSignature"
+            >
+              {{ isPreparingSignature ? 'Preparando assinatura...' : 'Assinar' }}
+            </button>
+          </div>
+
+          <div v-if="isSignPanelVisible" style="margin-top:1rem;border-top:1px solid var(--border,#ddd);padding-top:1rem;">
+            <p class="text-muted" style="margin-top:0;margin-bottom:.75rem;">{{ signStatusMessage }}</p>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+              <a v-if="signAuthorizeUrl" :href="signAuthorizeUrl" target="_blank" rel="noopener noreferrer">Abrir autorização novamente</a>
+              <button type="button" class="btn-danger" @click="cancelSignatureFlow">Cancelar assinatura</button>
+            </div>
+          </div>
+        </div>
       </template>
       <div class="btn-group" style="justify-content:flex-end;gap:.5rem;">
-        <button v-if="isPreviewing" type="button" :disabled="isSubmitting" @click="clearPreview">Editar</button>
-        <button type="submit" :disabled="isSubmitting">{{ isSubmitting ? (isPreviewing ? 'Salvando...' : 'Gerando pré-visualização...') : (isPreviewing ? 'Confirmar e Salvar' : 'Pré-visualizar') }}</button>
+        <button v-if="isPreviewing" type="button" :disabled="isSubmitting || isPreparingSignature" @click="clearPreview">Editar</button>
+        <button type="submit" :disabled="isSubmitting || isPreparingSignature">{{ isSubmitting ? (isPreviewing ? 'Salvando...' : 'Gerando pré-visualização...') : (isPreviewing ? 'Confirmar e Salvar' : 'Pré-visualizar') }}</button>
       </div>
     </form>
   </div>

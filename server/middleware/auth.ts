@@ -11,6 +11,7 @@ export default defineEventHandler((event) => {
   const publicRoutes = [
     '/api/auth/login',
     '/api/auth/activate',
+    '/api/safeid/callback',
     '/auth/login',
     '/_nuxt/',  // Nuxt internal assets
     '/css/',

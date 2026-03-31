@@ -85,8 +85,11 @@ export default defineEventHandler(async (event) => {
     ['free', ''] as [string, string]
   ]);
 
+  const signatureStatus = body.signature_status === 'signed' ? 'signed' : 'unsigned';
+
   const formInfo = {
     cid_code: body.cid_code,
+    signature_status: signatureStatus,
     formulas: normalizedFormulaItems.map((item) => ({
       formula_id: item.formula_id,
       formula_name: formulaMap.get(item.formula_id)!,
@@ -104,7 +107,9 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Não foi possível gerar pré-visualização para este paciente/prescritor.' });
     }
 
-    const previewBuffer = await generatePDFDocument(formInfo, prescriber, patient);
+    const previewBuffer = await generatePDFDocument(formInfo, prescriber, patient, {
+      signatureStatus,
+    });
     const previewHash = createHash('sha256').update(previewBuffer).digest('hex');
 
     return {

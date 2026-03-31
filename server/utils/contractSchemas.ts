@@ -94,6 +94,11 @@ export const safeIdSignBodySchema = z.object({
   base64Pdf: z.string(),
 }).strict()
 
+export const safeIdQrStartBodySchema = z.object({
+  pdf_base64: z.string(),
+  pdf_hash: z.string(),
+}).strict()
+
 export const safeIdCallbackBodySchema = z.object({
   error: z.string().optional(),
   identifierCA: z.string().optional(),
@@ -114,4 +119,5 @@ export const prescriptionPostBodySchema = z.object({
   preview_only: z.boolean().optional(),
   preview_pdf_base64: z.string().optional(),
   preview_pdf_hash: z.string().optional(),
+  signature_status: z.enum(['signed', 'unsigned']).optional(),
 }).strict()

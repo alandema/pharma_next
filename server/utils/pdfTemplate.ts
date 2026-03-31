@@ -1,6 +1,17 @@
 import PDFDocument from 'pdfkit';
 
-export async function generatePDFDocument(body: any, prescriber: any, patient: any): Promise<Buffer> {
+type SignatureStatus = 'signed' | 'unsigned'
+
+type PdfGenerationOptions = {
+  signatureStatus?: SignatureStatus
+}
+
+export async function generatePDFDocument(
+  body: any,
+  prescriber: any,
+  patient: any,
+  options: PdfGenerationOptions = {},
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const chunks: Buffer[] = [];
@@ -9,6 +20,10 @@ export async function generatePDFDocument(body: any, prescriber: any, patient: a
       resolve(Buffer.concat(chunks));
     });
     doc.on('error', reject);
+
+    const signatureStatus: SignatureStatus = options.signatureStatus === 'signed' ? 'signed' : 'unsigned';
+    const signatureStamp = signatureStatus === 'signed' ? 'ASSINADO DIGITALMENTE' : 'DOCUMENTO NÃO ASSINADO';
+    const signatureStampColor = signatureStatus === 'signed' ? '#000000' : '#B91C1C';
 
     const prescriberDisplayName = prescriber.full_name || prescriber.email || prescriber;
 
@@ -47,11 +62,15 @@ export async function generatePDFDocument(body: any, prescriber: any, patient: a
 
     // Prescriber Info (Footer-ish)
     doc.moveDown(4);
+    doc.moveDown(0.5);
+    doc.fontSize(10).fillColor(signatureStampColor).text(signatureStamp, { align: 'center' });
+    doc.fillColor('black');
     doc.fontSize(12).text('_____________________________________', { align: 'center' });
     doc.text(`${prescriberDisplayName}`, { align: 'center' });
     if (prescriber.council && prescriber.council_number && prescriber.council_state) {
       doc.text(`${prescriber.council}: ${prescriber.council_number} / ${prescriber.council_state}`, { align: 'center' });
     }
+
     // presriber address and contact
     const builtAddress = `${prescriber.street || ''} ${prescriber.address_number || ''} ${prescriber.complement || ''}, ${prescriber.city || ''}-${prescriber.state || ''}, ${prescriber.zipcode || ''}`.trim();
     if (builtAddress) {
