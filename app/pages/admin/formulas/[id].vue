@@ -2,6 +2,7 @@
 type Formula = { id: string; name: string; information?: string }
 
 const route = useRoute()
+const toast = useToast()
 const { data: formula, refresh } = await useFetch<Formula>(`/api/formulas/${route.params.id}`, {
   method: 'GET'
 })
@@ -10,15 +11,19 @@ const information = ref(formula.value?.information ?? '')
 
 const save = async () => {
   const payload = {
-    information: information.value,
+    information: String(information.value ?? ''),
   }
 
-  await $fetch(`/api/formulas/${route.params.id}`, {
-    method: 'PUT',
-    body: payload
-  })
-  refresh()
-  await navigateTo('/admin/formulas')
+  try {
+    await $fetch(`/api/formulas/${route.params.id}`, {
+      method: 'PUT',
+      body: payload
+    })
+    refresh()
+    await navigateTo('/admin/formulas')
+  } catch (error: any) {
+    toast.add(error?.data?.statusMessage ?? 'Não foi possível salvar a fórmula. Tente novamente.', 'error')
+  }
 }
 
 const deleteFormula = async (id: string) => {

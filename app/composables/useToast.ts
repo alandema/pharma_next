@@ -1,5 +1,5 @@
-const toasts = ref<{ id: number; message: string; type: 'error' | 'warning' | 'success' }[]>([])
-let nextId = 0
+type ToastType = 'error' | 'warning' | 'success'
+type ToastItem = { id: number; message: string; type: ToastType }
 
 const FIELD_LABELS: Record<string, string> = {
   email: 'E-mail',
@@ -40,8 +40,11 @@ const normalizeErrorToastMessage = (message: string) => {
 }
 
 export const useToast = () => {
-  const add = (message: string = 'Algo deu errado', type: 'error' | 'warning' | 'success' = 'error', duration = 4000) => {
-    const id = nextId++
+  const toasts = useState<ToastItem[]>('app-toasts', () => [])
+  const nextId = useState<number>('app-toast-next-id', () => 0)
+
+  const add = (message: string = 'Algo deu errado', type: ToastType = 'error', duration = 4000) => {
+    const id = nextId.value++
     const finalMessage = type === 'error' ? normalizeErrorToastMessage(message) : message
     toasts.value.push({ id, message: finalMessage, type })
     setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id) }, duration)

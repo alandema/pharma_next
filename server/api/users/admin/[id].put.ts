@@ -1,13 +1,11 @@
 import bcrypt from 'bcryptjs';
+import { prescriberUpdateBodySchema } from '../../../utils/contractSchemas';
 import { validatePassword } from '../../../utils/credentials';
 import {
-  normalizeBirthDate,
-  normalizeBrazilCep,
-  normalizeBrazilCpf,
-  normalizeBrazilPhone,
   normalizeBoolean,
   normalizeText,
 } from '../../../utils/inputNormalization';
+import { readStrictBody } from '../../../utils/requestValidation';
 import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, PRESCRIBER_SAFE_SELECT } from '../../../utils/rbac';
 
 const PRESCRIBER_FIELD_LABELS: Record<string, string> = {
@@ -87,17 +85,17 @@ const toFriendlyPrescriberUpdateError = (error: any) => {
   })
 }
 
+const toDbDate = (value: string | null) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export default defineEventHandler(async (event) => {
   const actor = requireAdminLikeUser(event)
   const id = event.context.params?.id
 
-  const body = await readBody(event).catch(() => {
-    throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
-  })
-
-  if (!body || typeof body !== 'object') {
-    throw createError({ statusCode: 400, statusMessage: 'Corpo da requisição inválido.' })
-  }
+  const body = await readStrictBody(event, prescriberUpdateBodySchema)
 
   const prescriber = await prisma.user.findUnique({ where: { id }, select: { is_active: true, email: true, send_email: true, role: true, full_name: true, cpf: true, gender: true, birth_date: true, phone: true, council: true, council_number: true, council_state: true, zipcode: true, street: true, address_number: true, city: true, state: true } })
   if (!prescriber) throw createError({ statusCode: 404, statusMessage: 'Prescritor não encontrado.' })
@@ -143,14 +141,14 @@ export default defineEventHandler(async (event) => {
     }
     if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
     if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
-    if ('cpf' in body) updateData.cpf = normalizeBrazilCpf(body.cpf, true)
+    if ('cpf' in body) updateData.cpf = normalizeText(body.cpf)
     if ('gender' in body) updateData.gender = normalizeText(body.gender, { titleCase: true })
-    if ('birth_date' in body) updateData.birth_date = normalizeBirthDate(body.birth_date)
-    if ('phone' in body) updateData.phone = normalizeBrazilPhone(body.phone)
+    if ('birth_date' in body) updateData.birth_date = toDbDate(normalizeText(body.birth_date))
+    if ('phone' in body) updateData.phone = normalizeText(body.phone)
     if ('council' in body) updateData.council = normalizeText(body.council)
     if ('council_number' in body) updateData.council_number = normalizeText(body.council_number)
     if ('council_state' in body) updateData.council_state = normalizeText(body.council_state)?.toUpperCase() ?? null
-    if ('zipcode' in body) updateData.zipcode = normalizeBrazilCep(body.zipcode, true)
+    if ('zipcode' in body) updateData.zipcode = normalizeText(body.zipcode)
     if ('street' in body) updateData.street = normalizeText(body.street, { titleCase: true })
     if ('address_number' in body) updateData.address_number = normalizeText(body.address_number)
     if ('complement' in body) updateData.complement = normalizeText(body.complement, { titleCase: true })

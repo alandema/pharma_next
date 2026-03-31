@@ -1,3 +1,6 @@
+import { patientTransferBodySchema } from '../../../utils/contractSchemas';
+import { readStrictBody } from '../../../utils/requestValidation';
+
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
 
@@ -9,7 +12,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const patientId = event.context.params?.id;
-  const body = await readBody(event);
+  const body = await readStrictBody(event, patientTransferBodySchema)
   const { prescritor_id } = body;
 
   if (!prescritor_id) {

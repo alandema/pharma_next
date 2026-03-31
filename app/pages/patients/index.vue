@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDateFormatting } from '../../composables/useDateFormatting'
+import { useCurrentUser } from '../../composables/useCurrentUser'
 
 interface Patient {
   id: string;
@@ -26,9 +27,9 @@ const { data: response } = await useFetch<PaginatedResponse>('/api/patients', {
 const patients = computed(() => response.value?.data || []);
 const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 });
 
-const { data: me } = await useFetch('/api/users/me')
+const { currentUser } = useCurrentUser()
 const isAdmin = computed(() => {
-  const role = (me.value as any)?.role
+  const role = currentUser.value?.role
   return role === 'admin' || role === 'superadmin'
 })
 

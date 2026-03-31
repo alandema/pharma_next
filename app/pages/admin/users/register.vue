@@ -10,7 +10,7 @@ const f = ref({
   zipcode: '', street: '', address_number: '', complement: '', city: '', state: ''
 })
 const { add: addToast } = useToast()
-const { formatBrazilPhoneInput, formatCepInput, formatCpfInput, isValidBrazilCpf, isValidBirthDate, normalizeText } = useInputFormatting()
+const { formatBrazilPhoneInput, formatCepInput, formatCpfInput, isValidBrazilCpf, isValidBirthDate, normalizeText, isValidBrazilCep, isValidBrazilPhone, isValidEmail, validatePasswordPolicy } = useInputFormatting()
 
 const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
 
@@ -63,8 +63,24 @@ const normalizeForm = () => ({
 const submit = async () => {
   const payload = normalizeForm()
 
+  const passwordError = validatePasswordPolicy(payload.password)
+  if (passwordError) {
+    addToast(passwordError, 'error')
+    return
+  }
+
+  if (!payload.email || !isValidEmail(payload.email)) {
+    addToast('E-mail inválido. Informe um e-mail válido.', 'error')
+    return
+  }
+
   if (!payload.zipcode) {
     addToast('CEP é obrigatório para prescritores/profissionais.', 'error')
+    return
+  }
+
+  if (!isValidBrazilCep(payload.zipcode)) {
+    addToast('CEP inválido. Use o formato 00000-000.', 'error')
     return
   }
 
@@ -78,10 +94,15 @@ const submit = async () => {
     return
   }
 
+  if (!payload.phone || !isValidBrazilPhone(payload.phone)) {
+    addToast('Telefone inválido. Use um número brasileiro válido.', 'error')
+    return
+  }
+
   try {
     await $fetch('/api/users/admin', { method: 'POST', body: payload })
     addToast('Prescritor criado como inativo. Um e-mail de ativação foi enviado.', 'success')
-    navigateTo('/admin/users')
+    await navigateTo('/admin/users')
   } catch (error: any) {
     addToast(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível criar o prescritor. Verifique os dados e tente novamente.', 'error')
   }
@@ -97,6 +118,7 @@ const submit = async () => {
     <form @submit.prevent="submit" class="grid-form">
       <div class="section-title">Informações de Acesso</div>
       <div class="form-group"><label>Senha *</label><input v-model="f.password" type="password" required /></div>
+      <div class="form-group text-muted" style="align-self:end;">A senha deve ter 8-25 caracteres com letras e números.</div>
       <div class="form-group"><label>Email *</label><input v-model="f.email" type="email" required /></div>
       <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;margin-top:1.5rem"><input type="checkbox" id="se_admin_register" v-model="f.send_email" /><label for="se_admin_register" style="margin:0">Receber e-mails de cópia das prescrições</label></div>
       

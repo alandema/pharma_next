@@ -6,7 +6,7 @@ import { GENDER_OPTIONS } from '#shared/utils/commonOptions'
 const props = defineProps<{ initial?: Record<string, any>, submitLabel?: string }>()
 const emit = defineEmits<{ submit: [data: Record<string, any>] }>()
 const { add: addToast } = useToast()
-const { formatBrazilPhoneInput, formatCepInput, formatCpfInput, isValidBrazilCpf, isBrazilCountry, normalizeText, isValidBirthDate } = useInputFormatting()
+const { formatBrazilPhoneInput, formatCepInput, formatCpfInput, isValidBrazilCpf, isBrazilCountry, normalizeText, isValidBirthDate, isValidBrazilCep, isValidBrazilPhone, isValidEmail } = useInputFormatting()
 
 const f = reactive({
   name: '', rg: '', gender: '', cpf: '', birth_date: '', phone: '',
@@ -91,10 +91,51 @@ watch(() => f.cpf, (value) => {
 
 const submitForm = () => {
   const mustApplyBrazilRules = !isInternationalPatient.value
+  const normalizedName = normalizeText(f.name, { titleCase: true })
+  const normalizedEmail = normalizeText(f.email)
+
+  if (!normalizedName) {
+    addToast('Nome é obrigatório.', 'error')
+    return
+  }
+
+  if (f.send_email && !normalizedEmail) {
+    addToast('E-mail é obrigatório para receber notificações.', 'error')
+    return
+  }
+
+  if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+    addToast('E-mail inválido. Informe um e-mail válido.', 'error')
+    return
+  }
 
   if (f.birth_date && !isValidBirthDate(f.birth_date)) {
     addToast('Data de nascimento inválida.', 'error')
     return
+  }
+
+  if (mustApplyBrazilRules) {
+    if (!normalizeText(f.phone)) {
+      addToast('Telefone é obrigatório para pacientes brasileiros.', 'error')
+      return
+    }
+
+    if (!isValidBrazilPhone(f.phone)) {
+      addToast('Telefone inválido. Use um telefone brasileiro válido.', 'error')
+      return
+    }
+  }
+
+  if (isBrazilPatient.value) {
+    if (!normalizeText(f.zipcode)) {
+      addToast('CEP é obrigatório para pacientes brasileiros.', 'error')
+      return
+    }
+
+    if (!isValidBrazilCep(f.zipcode)) {
+      addToast('CEP inválido. Use o formato 00000-000.', 'error')
+      return
+    }
   }
 
   if (mustApplyBrazilRules && f.cpf && !isValidBrazilCpf(f.cpf)) {
@@ -104,8 +145,8 @@ const submitForm = () => {
 
   const payload = {
     ...f,
-    name: normalizeText(f.name, { titleCase: true }),
-    email: normalizeText(f.email),
+    name: normalizedName,
+    email: normalizedEmail,
     rg: normalizeText(f.rg),
     gender: normalizeText(f.gender, { titleCase: true }),
     cpf: mustApplyBrazilRules ? formatCpfInput(f.cpf) : normalizeText(f.cpf),

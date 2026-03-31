@@ -2,6 +2,7 @@
 import { GENDER_OPTIONS } from '#shared/utils/commonOptions'
 import { AsYouType, parsePhoneNumberWithError } from 'libphonenumber-js'
 import { useInputFormatting } from '../composables/useInputFormatting'
+import { useCurrentUser } from '../composables/useCurrentUser'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -14,20 +15,21 @@ const apiEndpoint = computed(() => props.prescriberId ? `/api/users/admin/${prop
 const { add: addToast } = useToast()
 const { formatCpfInput, isValidBrazilCpf } = useInputFormatting()
 const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
+const { currentUser, loadCurrentUser } = useCurrentUser()
 
-const { data: meData } = await useFetch('/api/users/me')
-const { data: prescriberData, refresh } = await useFetch(apiEndpoint.value)
+await loadCurrentUser()
+const { data: prescriberData, refresh } = await useFetch(apiEndpoint, { watch: [apiEndpoint] })
 const profile = ref<any>({ ...(prescriberData.value || {}) })
 const password = ref('')
 
 const isSelfProfile = computed(() => {
   if (!props.prescriberId) return true
-  const meId = (meData.value as any)?.id ?? (meData.value as any)?.userId
+  const meId = currentUser.value?.id ?? currentUser.value?.userId
   return Boolean(meId && meId === profile.value?.id)
 })
 
 const isAdminLikeMe = computed(() => {
-  const role = (meData.value as any)?.role
+  const role = currentUser.value?.role
   return role === 'admin' || role === 'superadmin'
 })
 

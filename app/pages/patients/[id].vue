@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useInputFormatting } from '../../composables/useInputFormatting'
 import { useDateFormatting } from '../../composables/useDateFormatting'
+import { useCurrentUser } from '../../composables/useCurrentUser'
 
 type Patient = {
   id: string;
@@ -62,13 +63,16 @@ const route = useRoute()
 const toast = useToast()
 const { isBrazilCountry, isValidBirthDate } = useInputFormatting()
 const { formatDatePtBR } = useDateFormatting()
+const { currentUser } = useCurrentUser()
 const { data: patient, refresh } = await useFetch<Patient>(`/api/patients/${route.params.id}`, { method: 'GET' })
-const { data: me } = await useFetch('/api/users/me')
 const isAdmin = computed(() => {
-  const role = (me.value as any)?.role
+  const role = currentUser.value?.role
   return role === 'admin' || role === 'superadmin'
 })
-const canDelete = computed(() => isAdmin.value || (me.value as any)?.userId === patient.value?.registered_by)
+const canDelete = computed(() => {
+  const currentUserId = currentUser.value?.id ?? currentUser.value?.userId
+  return isAdmin.value || currentUserId === patient.value?.registered_by
+})
 
 const prescritoresPage = ref(1)
 

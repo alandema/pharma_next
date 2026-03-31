@@ -2,6 +2,7 @@
 import { GENDER_OPTIONS } from '#shared/utils/commonOptions'
 import { AsYouType, parsePhoneNumberWithError } from 'libphonenumber-js'
 import { useInputFormatting } from '../composables/useInputFormatting'
+import { useCurrentUser } from '../composables/useCurrentUser'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -12,22 +13,23 @@ const props = defineProps<{
 const apiEndpoint = computed(() => props.prescriberId ? `/api/users/admin/${props.prescriberId}` : '/api/users/me')
 
 const { add: addToast } = useToast()
-const { formatCpfInput, isValidBrazilCpf } = useInputFormatting()
+const { formatCpfInput, isValidBrazilCpf, isValidBirthDate, isValidBrazilCep, isValidBrazilPhone, isValidEmail, validatePasswordPolicy } = useInputFormatting()
 const { data: councils } = await useAsyncData('councils', () => queryCollection('councils').first())
+const { currentUser, loadCurrentUser } = useCurrentUser()
 
-const { data: meData } = await useFetch('/api/users/me')
-const { data: prescriberData, refresh } = await useFetch(apiEndpoint.value)
+await loadCurrentUser()
+const { data: prescriberData, refresh } = await useFetch(apiEndpoint, { watch: [apiEndpoint] })
 const profile = ref<any>({ ...(prescriberData.value || {}) })
 const password = ref('')
 
 const isSelfProfile = computed(() => {
   if (!props.prescriberId) return true
-  const meId = (meData.value as any)?.id ?? (meData.value as any)?.userId
+  const meId = currentUser.value?.id ?? currentUser.value?.userId
   return Boolean(meId && meId === profile.value?.id)
 })
 
 const isAdminLikeMe = computed(() => {
-  const role = (meData.value as any)?.role
+  const role = currentUser.value?.role
   return role === 'admin' || role === 'superadmin'
 })
 
@@ -156,6 +158,34 @@ const handleSubmit = async () => {
   try {
     const payload = buildSubmitPayload()
 
+    if (canEditOwnIdentity.value && hasRequiredValue(payload.email) && !isValidEmail(payload.email)) {
+      addToast('E-mail inválido. Informe um e-mail válido.', 'error')
+      return
+    }
+
+    if (hasRequiredValue(payload.birth_date) && !isValidBirthDate(String(payload.birth_date))) {
+      addToast('Data de nascimento inválida.', 'error')
+      return
+    }
+
+    if (hasRequiredValue(payload.phone) && !isValidBrazilPhone(payload.phone)) {
+      addToast('Telefone inválido. Use um número brasileiro válido.', 'error')
+      return
+    }
+
+    if (hasRequiredValue(payload.zipcode) && !isValidBrazilCep(payload.zipcode)) {
+      addToast('CEP inválido. Use o formato 00000-000.', 'error')
+      return
+    }
+
+    if (typeof payload.password === 'string') {
+      const passwordError = validatePasswordPolicy(payload.password)
+      if (passwordError) {
+        addToast(passwordError, 'error')
+        return
+      }
+    }
+
     const missingField = getFirstMissingRequiredField(payload)
     if (missingField) {
       addToast(`${missingField.label} é obrigatório.`, 'error')
@@ -186,7 +216,7 @@ const handleSubmit = async () => {
     <form @submit.prevent="handleSubmit" class="grid-form">
       <div class="section-title">Informações de Acesso</div>
       <div class="form-group"><label>E-mail</label><input v-model="profile.email" :disabled="!canEditOwnIdentity" /></div>
-      <div class="form-group"><label>Senha</label><input type="password" v-model="password" :disabled="!canEditPassword" placeholder="Deixe em branco para não alterar" /></div>
+      <div class="form-group"><label>Senha</label><input type="password" v-model="password" :disabled="!canEditPassword" placeholder="Deixe em branco para não alterar (8-25, letras e números)" /></div>
 
       
       <div class="section-title">Informações Pessoais</div>

@@ -9,8 +9,15 @@ const { normalizeText } = useInputFormatting()
 const toast = useToast()
 
 const submit = async () => {
+  const normalizedName = normalizeText(name.value, { titleCase: true })
+
+  if (!normalizedName) {
+    toast.add('Nome da fórmula é obrigatório.', 'error')
+    return
+  }
+
   const payload = {
-    name: normalizeText(name.value, { titleCase: true }),
+    name: normalizedName,
     information: information.value,
   }
 
@@ -19,7 +26,7 @@ const submit = async () => {
       method: 'POST',
       body: payload
     })
-    navigateTo('/admin/formulas')
+    await navigateTo('/admin/formulas')
   } catch (error: any) {
     toast.add(error?.data?.statusMessage ?? error?.data?.message ?? 'Não foi possível salvar a fórmula. Tente novamente.', 'error')
   }

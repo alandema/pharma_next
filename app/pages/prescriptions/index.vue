@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDateFormatting } from '../../composables/useDateFormatting'
+import { useCurrentUser } from '../../composables/useCurrentUser'
 
 type Prescription = {
   id: string;
@@ -53,9 +54,9 @@ const selectedPatientId = ref((route.query.patientId as string) || '');
 const startDate = ref('');
 const endDate = ref('');
 
-const { data: me } = await useFetch('/api/users/me')
+const { currentUser } = useCurrentUser()
 const isAdmin = computed(() => {
-  const role = (me.value as any)?.role
+  const role = currentUser.value?.role
   return role === 'admin' || role === 'superadmin'
 })
 

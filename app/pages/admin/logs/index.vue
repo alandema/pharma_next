@@ -25,6 +25,19 @@ type PatientOption = {
   name: string;
 };
 
+type LogEntry = {
+  id: string;
+  event_time: string;
+  message: string;
+  user?: {
+    full_name?: string;
+    email?: string;
+  } | null;
+  patient?: {
+    name?: string;
+  } | null;
+};
+
 const page = ref(1)
 const pageJumpInput = ref('1')
 const prescriberOptionsPage = ref(1)
@@ -50,7 +63,7 @@ const patients = computed(() => patientsResponse.value?.data || [])
 const prescribersMetadata = computed(() => prescribersResponse.value?.metadata || { page: 1, totalPages: 1 })
 const patientsMetadata = computed(() => patientsResponse.value?.metadata || { page: 1, totalPages: 1 })
 
-const { data: response } = await useFetch<any>('/api/logs', {
+const { data: response } = await useFetch<PaginatedResponse<LogEntry>>('/api/logs', {
   method: 'GET',
   query: { page, limit: 20, userId: selectedPrescriberId, patientId: selectedPatientId, date: selectedDate },
   watch: [page, selectedPrescriberId, selectedPatientId, selectedDate],

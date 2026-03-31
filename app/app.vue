@@ -30,6 +30,8 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrentUser } from './composables/useCurrentUser'
+
 interface Prescriber { id: string; email: string; full_name: string; role: string }
 
 const isAdminRole = (role?: string) => role === 'admin' || role === 'superadmin'
@@ -38,17 +40,26 @@ const { brand } = useAppConfig()
 useHead({ title: brand.name })
 
 const { isLoading } = useLoadingIndicator()
+const { currentUser, loadCurrentUser, clearCurrentUser } = useCurrentUser()
 
-const { data: prescriber } = await useFetch<Prescriber>('/api/users/me', {
-  key: useRoute().path,
-  default: () => undefined,
-  onResponseError: () => {}
+await loadCurrentUser()
+
+const prescriber = computed<Prescriber | null>(() => {
+  const user = currentUser.value
+  if (!user) return null
+
+  return {
+    id: user.id,
+    email: user.email,
+    full_name: user.full_name,
+    role: user.role,
+  }
 })
 
 const handleLogout = async () => {
   await $fetch('/api/auth/logout', { method: 'POST', body: {} })
-  await refreshNuxtData()
-  navigateTo('/auth/login')
+  clearCurrentUser()
+  await navigateTo('/auth/login')
 }
 </script>
 
