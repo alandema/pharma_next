@@ -1,4 +1,6 @@
 import PDFDocument from 'pdfkit';
+import { existsSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
 
 type SignatureStatus = 'signed' | 'unsigned'
 
@@ -44,11 +46,15 @@ export async function generatePDFDocument(
     });
     doc.on('error', reject);
 
-    const signatureStatus: SignatureStatus = options.signatureStatus === 'signed' ? 'signed' : 'unsigned';
-    const signatureStamp = signatureStatus === 'signed' ? 'ASSINADO DIGITALMENTE' : 'DOCUMENTO NÃO ASSINADO';
-    const signatureStampColor = signatureStatus === 'signed' ? '#000000' : '#B91C1C';
-
     const prescriberDisplayName = prescriber.full_name || prescriber.email || prescriber;
+    const signatureStatus: SignatureStatus = options.signatureStatus === 'signed' ? 'signed' : 'unsigned';
+    const signatureStamp = signatureStatus === 'signed' ? `${prescriberDisplayName}` : 'DOCUMENTO NÃO ASSINADO';
+    const signatureStampColor = signatureStatus === 'signed' ? '#000000' : '#B91C1C';
+    const signatureFontPathCandidates = [
+      resolvePath(process.cwd(), 'public', 'Thesignature.ttf'),
+      resolvePath(process.cwd(), '.output', 'public', 'Thesignature.ttf'),
+    ];
+    const signatureFontPath = signatureFontPathCandidates.find((candidatePath) => existsSync(candidatePath));
 
     // Header / Prescription Date
     doc.fontSize(12).text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'right' });
@@ -94,7 +100,13 @@ export async function generatePDFDocument(
     // Prescriber Info (Footer-ish)
     doc.moveDown(4);
     doc.moveDown(0.5);
-    doc.fontSize(10).fillColor(signatureStampColor).text(signatureStamp, { align: 'center' });
+    if (signatureStatus === 'signed' && signatureFontPath) {
+      doc.registerFont('prescriber-signature', signatureFontPath);
+      doc.font('prescriber-signature').fontSize(24).fillColor(signatureStampColor).text(signatureStamp, { align: 'center' });
+      doc.font('Helvetica');
+    } else {
+      doc.fontSize(10).fillColor(signatureStampColor).text(signatureStamp, { align: 'center' });
+    }
     doc.fillColor('black');
     doc.fontSize(12).text('_____________________________________', { align: 'center' });
     doc.text(`${prescriberDisplayName}`, { align: 'center' });
