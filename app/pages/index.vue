@@ -1,5 +1,7 @@
 <script setup lang="ts">
-function navigate(path: string) { return navigateTo({ path }) }
+function navigate(path: string) {
+  return navigateTo({ path });
+}
 </script>
 
 <template>

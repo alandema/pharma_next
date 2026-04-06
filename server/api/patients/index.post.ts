@@ -1,15 +1,10 @@
 import { patientWriteBodySchema } from '../../utils/contractSchemas';
 import {
   normalizeBoolean,
+  parseDateOnlyToUtcDate,
   normalizeText,
 } from '../../utils/inputNormalization';
 import { readStrictBody } from '../../utils/requestValidation';
-
-const toDbDate = (value: string | null) => {
-  if (!value) return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
 
 export default defineEventHandler(async (event) => {
   const user = event.context.user;
@@ -23,7 +18,7 @@ export default defineEventHandler(async (event) => {
     rg: normalizeText(body.rg),
     gender: normalizeText(body.gender, { titleCase: true }),
     cpf: normalizeText(body.cpf),
-    birth_date: toDbDate(normalizeText(body.birth_date)),
+    birth_date: parseDateOnlyToUtcDate(normalizeText(body.birth_date)),
     phone: normalizeText(body.phone),
     zipcode: normalizeText(body.zipcode),
     street: normalizeText(body.street, { titleCase: true }),

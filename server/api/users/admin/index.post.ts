@@ -5,6 +5,7 @@ import { prescriberCreateBodySchema } from '../../../utils/contractSchemas';
 import { validatePassword } from '../../../utils/credentials';
 import {
   normalizeBoolean,
+  parseDateOnlyToUtcDate,
   normalizeText,
 } from '../../../utils/inputNormalization';
 import { readStrictBody } from '../../../utils/requestValidation';
@@ -32,12 +33,6 @@ async function getAccountActivationTemplate() {
   return accountActivationTemplate
 }
 
-const toDbDate = (value: string | null) => {
-  if (!value) return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
 export default defineEventHandler(async (event) => {
   requireAdminLikeUser(event)
   const body = await readStrictBody(event, prescriberCreateBodySchema)
@@ -62,7 +57,7 @@ export default defineEventHandler(async (event) => {
     full_name: normalizeText(full_name, { titleCase: true }),
     cpf: normalizeText(cpf),
     gender: normalizeText(gender, { titleCase: true }),
-    birth_date: toDbDate(normalizeText(birth_date)),
+    birth_date: parseDateOnlyToUtcDate(normalizeText(birth_date)),
     phone: normalizeText(phone),
     council: normalizeText(council),
     council_number: normalizeText(council_number),

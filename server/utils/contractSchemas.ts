@@ -33,6 +33,7 @@ export const prescriberUpdateBodySchema = z.object({
   email: z.string().optional(),
   send_email: z.boolean().optional(),
   full_name: z.string().optional(),
+  title: optionalNullableString,
   cpf: z.string().optional(),
   gender: z.string().optional(),
   birth_date: z.string().optional(),

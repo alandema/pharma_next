@@ -3,6 +3,7 @@ import { prescriberUpdateBodySchema } from '../../utils/contractSchemas';
 import { validatePassword } from '../../utils/credentials'
 import {
   normalizeBoolean,
+  parseDateOnlyToUtcDate,
   normalizeText,
 } from '../../utils/inputNormalization';
 import { readStrictBody } from '../../utils/requestValidation';
@@ -58,12 +59,6 @@ const getMissingRequiredPrescriberField = (
   }
 
   return null
-}
-
-const toDbDate = (value: string | null) => {
-  if (!value) return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
 export default defineEventHandler(async (event) => {
@@ -128,8 +123,9 @@ export default defineEventHandler(async (event) => {
     }
 
     if (hasField('full_name')) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
+    if (hasField('title')) updateData.title = normalizeText(body.title, { titleCase: true })
   if (hasField('gender')) updateData.gender = normalizeText(body.gender, { titleCase: true })
-  if (hasField('birth_date')) updateData.birth_date = toDbDate(normalizeText(body.birth_date))
+  if (hasField('birth_date')) updateData.birth_date = parseDateOnlyToUtcDate(normalizeText(body.birth_date))
   if (hasField('phone')) updateData.phone = normalizeText(body.phone)
     if (hasField('council')) updateData.council = normalizeText(body.council)
     if (hasField('council_number')) updateData.council_number = normalizeText(body.council_number)

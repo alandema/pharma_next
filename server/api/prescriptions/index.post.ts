@@ -175,7 +175,9 @@ export default defineEventHandler(async (event) => {
   });
 
 
-  const prescriberName = prescriber.full_name ?? prescriber.email ?? 'Prescritor'
+  const prescriberBaseName = prescriber.full_name ?? prescriber.email ?? 'Prescritor'
+  const prescriberTitle = typeof prescriber.title === 'string' ? prescriber.title.trim() : ''
+  const prescriberName = prescriberTitle ? `${prescriberTitle} ${prescriberBaseName}` : prescriberBaseName
 
   if (patient.email && patient.send_email) {
     await sendPatientEmail(patient.email, patient.name, prescriberName, blob.url);

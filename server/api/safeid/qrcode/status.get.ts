@@ -63,6 +63,29 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const config = useRuntimeConfig()
+
+  // Non-production bypass for end-to-end flow tests without external signing.
+  if (config.allowSigningBypass && ['pending_authorization', 'authorized', 'processing'].includes(session.status)) {
+    const bypassSignedPdfBase64 = session.pdfBase64
+    const bypassSignedPdfHash = createHash('sha256').update(Buffer.from(bypassSignedPdfBase64, 'base64')).digest('hex')
+
+    session.status = 'signed'
+    session.signedPdfBase64 = bypassSignedPdfBase64
+    session.signedPdfHash = bypassSignedPdfHash
+    session.completedAt = new Date().toISOString()
+    session.errorMessage = undefined
+    await saveSafeIdQrSession(session)
+
+    console.warn('[SIGNING_BYPASS_ACTIVE]', `session=${session.id}`, `user=${user.userId}`)
+
+    return {
+      status: session.status,
+      signed_pdf_base64: session.signedPdfBase64,
+      signed_pdf_hash: session.signedPdfHash,
+    }
+  }
+
   if (['pending_authorization', 'processing', 'denied', 'failed', 'expired'].includes(session.status)) {
     return {
       status: session.status,
@@ -74,7 +97,6 @@ export default defineEventHandler(async (event) => {
   session.errorMessage = undefined
   await saveSafeIdQrSession(session)
 
-  const config = useRuntimeConfig()
   const clientId = config.safeidClientId
   const clientSecret = config.safeidClientSecret
   const redirectUri = config.safeidRedirectUri

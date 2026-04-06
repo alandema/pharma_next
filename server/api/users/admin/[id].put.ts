@@ -3,6 +3,7 @@ import { prescriberUpdateBodySchema } from '../../../utils/contractSchemas';
 import { validatePassword } from '../../../utils/credentials';
 import {
   normalizeBoolean,
+  parseDateOnlyToUtcDate,
   normalizeText,
 } from '../../../utils/inputNormalization';
 import { readStrictBody } from '../../../utils/requestValidation';
@@ -85,12 +86,6 @@ const toFriendlyPrescriberUpdateError = (error: any) => {
   })
 }
 
-const toDbDate = (value: string | null) => {
-  if (!value) return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
 export default defineEventHandler(async (event) => {
   const actor = requireAdminLikeUser(event)
   const id = event.context.params?.id
@@ -141,9 +136,10 @@ export default defineEventHandler(async (event) => {
     }
     if ('send_email' in body) updateData.send_email = normalizeBoolean(body.send_email)
     if ('full_name' in body) updateData.full_name = normalizeText(body.full_name, { titleCase: true })
+    if ('title' in body) updateData.title = normalizeText(body.title, { titleCase: true })
     if ('cpf' in body) updateData.cpf = normalizeText(body.cpf)
     if ('gender' in body) updateData.gender = normalizeText(body.gender, { titleCase: true })
-    if ('birth_date' in body) updateData.birth_date = toDbDate(normalizeText(body.birth_date))
+    if ('birth_date' in body) updateData.birth_date = parseDateOnlyToUtcDate(normalizeText(body.birth_date))
     if ('phone' in body) updateData.phone = normalizeText(body.phone)
     if ('council' in body) updateData.council = normalizeText(body.council)
     if ('council_number' in body) updateData.council_number = normalizeText(body.council_number)

@@ -64,6 +64,7 @@ export const PRESCRIBER_SAFE_SELECT = {
   role: true,
   is_active: true,
   full_name: true,
+  title: true,
   cpf: true,
   gender: true,
   birth_date: true,

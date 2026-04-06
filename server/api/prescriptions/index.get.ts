@@ -26,7 +26,10 @@ export default defineEventHandler(async (event) => {
       where,
       skip,
       take: limit,
-      orderBy: { date_prescribed: 'desc' },
+      orderBy: [
+        { date_prescribed: 'desc' },
+        { created_at: 'desc' },
+      ],
       include: {
         patient: {
           select: { id: true, name: true }

@@ -101,10 +101,10 @@ export const normalizeBrazilCpf = (value: unknown, required = false) => {
   return formatBrazilCpf(digits)
 }
 
-export const normalizeBirthDate = (value: unknown) => {
+export const parseDateOnlyToUtcDate = (value: unknown) => {
   if (value === null || value === undefined || value === '') return null
-  if (typeof value !== 'string') throw new Error('Data de nascimento inválida')
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Data de nascimento inválida')
+  if (typeof value !== 'string') return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
 
   const parts = value.split('-')
   const year = Number(parts[0])
@@ -112,7 +112,7 @@ export const normalizeBirthDate = (value: unknown) => {
   const day = Number(parts[2])
 
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    throw new Error('Data de nascimento inválida')
+    return null
   }
 
   const utcDate = new Date(Date.UTC(year, month - 1, day))
@@ -122,6 +122,15 @@ export const normalizeBirthDate = (value: unknown) => {
     utcDate.getUTCMonth() !== month - 1 ||
     utcDate.getUTCDate() !== day
   ) {
+    return null
+  }
+
+  return utcDate
+}
+
+export const normalizeBirthDate = (value: unknown) => {
+  const utcDate = parseDateOnlyToUtcDate(value)
+  if (!utcDate) {
     throw new Error('Data de nascimento inválida')
   }
 

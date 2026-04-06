@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDateFormatting } from '../composables/useDateFormatting'
+import { useDateFormatting } from "../composables/useDateFormatting";
 
 type Patient = {
   name: string;
@@ -31,7 +31,11 @@ type Prescription = {
 
 type ParsedPrescriptionInfo = {
   cid_code?: string;
-  formulas?: { formula_id?: string; formula_name?: string; description?: string }[];
+  formulas?: {
+    formula_id?: string;
+    formula_name?: string;
+    description?: string;
+  }[];
   [key: string]: unknown;
 };
 
@@ -49,7 +53,7 @@ const formInfo = computed<ParsedPrescriptionInfo>(() => {
   return props.prescription.json_form_info;
 });
 
-const cidCode = computed(() => (formInfo.value.cid_code as string) ?? '');
+const cidCode = computed(() => (formInfo.value.cid_code as string) ?? "");
 
 const cidLabel = computed(() => {
   const entry = props.cids.find((c) => c.code === cidCode.value);
@@ -57,35 +61,38 @@ const cidLabel = computed(() => {
 });
 
 const detailEntries = computed(() =>
-  Object.entries(formInfo.value).filter(([key]) => key !== 'cid_code' && key !== 'formulas')
+  Object.entries(formInfo.value).filter(
+    ([key]) => key !== "cid_code" && key !== "formulas",
+  ),
 );
 
 const formulas = computed(() => formInfo.value.formulas ?? []);
-const { formatDatePtBR, formatDateTimePtBR } = useDateFormatting()
+const { formatDatePtBR, formatDateTimePtBR } = useDateFormatting();
 
 const formattedDate = computed(() => {
-  return formatDatePtBR(props.prescription.date_prescribed)
+  return formatDatePtBR(props.prescription.date_prescribed);
 });
 
 const patientAddress = computed(() => {
   const p = props.prescription.patient;
-  return [p.street, p.house_number, p.district, p.city, p.state].filter(Boolean).join(', ');
+  return [p.street, p.house_number, p.district, p.city, p.state]
+    .filter(Boolean)
+    .join(", ");
 });
 
 const prescriptionShortId = computed(() =>
-  props.prescription.id.substring(0, 8).toUpperCase()
+  props.prescription.id.substring(0, 8).toUpperCase(),
 );
 
 const humanizeKey = (key: string) =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-const generatedAt = formatDateTimePtBR(new Date())
+const generatedAt = formatDateTimePtBR(new Date());
 const { brand } = useAppConfig();
 </script>
 
 <template>
   <div class="page">
-
     <!-- Header -->
     <div class="rx-header">
       <div>
@@ -98,30 +105,37 @@ const { brand } = useAppConfig();
     <!-- Patient block -->
     <div class="patient-block">
       <div class="full-row">
-        <label>Paciente: </label><span>{{ prescription.patient.name }}</span>
+        <label>Paciente: </label>
+        <span>{{ prescription.patient.name }}</span>
       </div>
       <div v-if="prescription.patient.birth_date">
-        <label>Data de Nascimento: </label><span>{{ formatDatePtBR(prescription.patient.birth_date) }}</span>
+        <label>Data de Nascimento: </label>
+        <span>{{ formatDatePtBR(prescription.patient.birth_date) }}</span>
       </div>
       <div v-else></div>
       <div v-if="prescription.patient.gender">
-        <label>Sexo: </label><span>{{ prescription.patient.gender }}</span>
+        <label>Sexo: </label>
+        <span>{{ prescription.patient.gender }}</span>
       </div>
       <div v-else></div>
       <div v-if="prescription.patient.cpf">
-        <label>CPF: </label><span>{{ prescription.patient.cpf }}</span>
+        <label>CPF: </label>
+        <span>{{ prescription.patient.cpf }}</span>
       </div>
       <div v-else></div>
       <div v-if="prescription.patient.rg">
-        <label>RG: </label><span>{{ prescription.patient.rg }}</span>
+        <label>RG: </label>
+        <span>{{ prescription.patient.rg }}</span>
       </div>
       <div v-else></div>
       <div v-if="prescription.patient.phone">
-        <label>Telefone: </label><span>{{ prescription.patient.phone }}</span>
+        <label>Telefone: </label>
+        <span>{{ prescription.patient.phone }}</span>
       </div>
       <div v-else></div>
       <div v-if="patientAddress" class="full-row">
-        <label>Endereço: </label><span>{{ patientAddress }}</span>
+        <label>Endereço: </label>
+        <span>{{ patientAddress }}</span>
       </div>
     </div>
 
@@ -152,9 +166,14 @@ const { brand } = useAppConfig();
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, index) in formulas" :key="`${item.formula_id || index}`">
-          <td class="detail-key">{{ item.formula_name || item.formula_id || `Fórmula ${index + 1}` }}</td>
-          <td class="detail-value">{{ item.description || '' }}</td>
+        <tr
+          v-for="(item, index) in formulas"
+          :key="`${item.formula_id || index}`"
+        >
+          <td class="detail-key">
+            {{ item.formula_name || item.formula_id || `Fórmula ${index + 1}` }}
+          </td>
+          <td class="detail-value">{{ item.description || "" }}</td>
         </tr>
       </tbody>
     </table>
@@ -164,11 +183,13 @@ const { brand } = useAppConfig();
         <template v-if="detailEntries.length > 0">
           <tr v-for="[key, value] in detailEntries" :key="key">
             <td class="detail-key">{{ humanizeKey(key) }}</td>
-            <td class="detail-value">{{ String(value ?? '') }}</td>
+            <td class="detail-value">{{ String(value ?? "") }}</td>
           </tr>
         </template>
         <tr v-else>
-          <td colspan="2" class="no-details">Nenhum detalhe adicional fornecido.</td>
+          <td colspan="2" class="no-details">
+            Nenhum detalhe adicional fornecido.
+          </td>
         </tr>
       </tbody>
     </table>
@@ -177,7 +198,13 @@ const { brand } = useAppConfig();
     <div class="signature-block">
       <div class="signature-box">
         <div class="signature-line"></div>
-        <div class="prescriber">{{ prescription.user?.full_name || prescription.user?.email || 'Prescritor' }}</div>
+        <div class="prescriber">
+          {{
+            prescription.user?.full_name ||
+            prescription.user?.email ||
+            "Prescritor"
+          }}
+        </div>
         <div class="prescriber-label">Prescritor Responsável</div>
       </div>
     </div>
@@ -187,17 +214,18 @@ const { brand } = useAppConfig();
       <span>Documento gerado em {{ generatedAt }}</span>
       <span>ID: {{ prescription.id }}</span>
     </div>
-
   </div>
 </template>
 
 <style scoped>
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 .page {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: "Times New Roman", Times, serif;
   color: #111;
   background: #fff;
   width: 210mm;
@@ -211,7 +239,7 @@ const { brand } = useAppConfig();
 
 /* ── Header ──────────────────────────────────────── */
 .rx-header {
-  border-bottom: 3px double #B8A44E;
+  border-bottom: 3px double #b8a44e;
   padding-bottom: 8px;
   margin-bottom: 14px;
   display: flex;
@@ -223,7 +251,7 @@ const { brand } = useAppConfig();
   font-weight: bold;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #B8A44E;
+  color: #b8a44e;
 }
 .clinic-subtitle {
   font-size: 11px;
@@ -290,12 +318,12 @@ const { brand } = useAppConfig();
   font-size: 36px;
   font-style: italic;
   font-weight: bold;
-  color: #B8A44E;
+  color: #b8a44e;
   line-height: 1;
 }
 .rx-line {
   flex: 1;
-  border-top: 1.5px solid #B8A44E;
+  border-top: 1.5px solid #b8a44e;
 }
 
 /* ── Details table ───────────────────────────────── */

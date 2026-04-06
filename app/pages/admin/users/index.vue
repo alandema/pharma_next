@@ -1,15 +1,16 @@
 <script setup lang="ts">
-
 const page = ref(1);
-const pageJumpInput = ref('1');
+const pageJumpInput = ref("1");
 
-const { data: response } = await useFetch('/api/users/admin', {
-  method: 'GET',
-  query: { page, limit: 10 }
+const { data: response } = await useFetch("/api/users/admin", {
+  method: "GET",
+  query: { page, limit: 10 },
 });
 
 const prescribers = computed(() => response.value?.data || []);
-const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 });
+const metadata = computed(
+  () => response.value?.metadata || { page: 1, totalPages: 1 },
+);
 
 const nextPage = () => {
   if (page.value < metadata.value.totalPages) {
@@ -37,34 +38,70 @@ const goToPage = () => {
   pageJumpInput.value = String(targetPage);
 };
 
-watch(() => metadata.value.page, (currentPage) => {
-  pageJumpInput.value = String(currentPage);
-}, { immediate: true });
-
+watch(
+  () => metadata.value.page,
+  (currentPage) => {
+    pageJumpInput.value = String(currentPage);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <div class="page-header">
     <h1>👤 Prescritores</h1>
-    <button class="btn-primary" @click="navigateTo('/admin/users/register')">+ Novo Prescritor</button>
+    <button class="btn-primary" @click="navigateTo('/admin/users/register')">
+      + Novo Prescritor
+    </button>
   </div>
   <div class="card">
     <template v-if="prescribers.length">
       <table class="list-table">
         <thead>
-          <tr><th>Nome</th><th>Privilégio</th><th>Status</th></tr>
+          <tr>
+            <th>Nome</th>
+            <th>Privilégio</th>
+            <th>Status</th>
+          </tr>
         </thead>
         <tbody>
-          <tr v-for="prescriber in prescribers" :key="prescriber.id" @click="navigateTo(`/admin/users/${prescriber.id}`)">
+          <tr
+            v-for="prescriber in prescribers"
+            :key="prescriber.id"
+            @click="navigateTo(`/admin/users/${prescriber.id}`)"
+          >
             <td>{{ prescriber.full_name }}</td>
-            <td style="text-align:right"><span :class="['badge', prescriber.role === 'admin' || prescriber.role === 'superadmin' ? 'badge-admin' : 'badge-prescriber']">{{ prescriber.role }}</span></td>
-            <td style="text-align:center"><span :class="['badge', prescriber.is_active ? 'badge-active' : 'badge-inactive']">{{ prescriber.is_active ? 'Ativo' : 'Inativo' }}</span></td>
+            <td style="text-align: right">
+              <span
+                :class="[
+                  'badge',
+                  prescriber.role === 'admin' ||
+                  prescriber.role === 'superadmin'
+                    ? 'badge-admin'
+                    : 'badge-prescriber',
+                ]"
+                >{{ prescriber.role }}</span
+              >
+            </td>
+            <td style="text-align: center">
+              <span
+                :class="[
+                  'badge',
+                  prescriber.is_active ? 'badge-active' : 'badge-inactive',
+                ]"
+                >{{ prescriber.is_active ? "Ativo" : "Inativo" }}</span
+              >
+            </td>
           </tr>
         </tbody>
       </table>
       <div class="pagination">
-        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">Anterior</button>
-        <span class="pagination-info">Página {{ metadata.page }} de {{ metadata.totalPages }}</span>
+        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">
+          Anterior
+        </button>
+        <span class="pagination-info"
+          >Página {{ metadata.page }} de {{ metadata.totalPages }}</span
+        >
         <div class="pagination-jump">
           <label for="admin-users-page-jump">Ir para</label>
           <input
@@ -78,7 +115,13 @@ watch(() => metadata.value.page, (currentPage) => {
             @keyup.enter.prevent="goToPage"
           />
         </div>
-        <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
+        <button
+          class="btn-secondary"
+          :disabled="page >= metadata.totalPages"
+          @click="nextPage"
+        >
+          Próxima
+        </button>
       </div>
     </template>
     <div v-else class="empty">Nenhum prescritor cadastrado.</div>

@@ -9,10 +9,19 @@
         <div class="logo">
           <img src="/header.png" alt="Logo da AMMA" />
         </div>
-        <span class="nav-home" @click="navigateTo(isAdminRole(prescriber?.role) ? '/admin' : '/')">Início</span>
+        <span
+          class="nav-home"
+          @click="navigateTo(isAdminRole(prescriber?.role) ? '/admin' : '/')"
+          >Início</span
+        >
       </div>
       <div class="nav-actions">
-        <span class="text-muted" style="font-size:.8rem; cursor:pointer;" @click="navigateTo('/profile')">{{ prescriber.full_name || prescriber.email }}</span>
+        <span
+          class="text-muted"
+          style="font-size: 0.8rem; cursor: pointer"
+          @click="navigateTo('/profile')"
+          >{{ prescriber.full_name || prescriber.email }}</span
+        >
         <button class="btn-sm" @click="handleLogout">Sair</button>
       </div>
     </nav>
@@ -22,7 +31,8 @@
     </main>
 
     <footer v-if="prescriber" class="app-footer">
-      © {{ new Date().getFullYear() }} {{ brand.name }} — Todos os direitos reservados
+      © {{ new Date().getFullYear() }} {{ brand.name }} — Todos os direitos
+      reservados
     </footer>
 
     <AppToast />
@@ -30,37 +40,43 @@
 </template>
 
 <script setup lang="ts">
-import { useCurrentUser } from './composables/useCurrentUser'
+import { useCurrentUser } from "./composables/useCurrentUser";
 
-interface Prescriber { id: string; email: string; full_name: string; role: string }
+interface Prescriber {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+}
 
-const isAdminRole = (role?: string) => role === 'admin' || role === 'superadmin'
+const isAdminRole = (role?: string) =>
+  role === "admin" || role === "superadmin";
 
-const { brand } = useAppConfig()
-useHead({ title: brand.name })
+const { brand } = useAppConfig();
+useHead({ title: brand.name });
 
-const { isLoading } = useLoadingIndicator()
-const { currentUser, loadCurrentUser, clearCurrentUser } = useCurrentUser()
+const { isLoading } = useLoadingIndicator();
+const { currentUser, loadCurrentUser, clearCurrentUser } = useCurrentUser();
 
-await loadCurrentUser()
+await loadCurrentUser();
 
 const prescriber = computed<Prescriber | null>(() => {
-  const user = currentUser.value
-  if (!user) return null
+  const user = currentUser.value;
+  if (!user) return null;
 
   return {
     id: user.id,
     email: user.email,
     full_name: user.full_name,
     role: user.role,
-  }
-})
+  };
+});
 
 const handleLogout = async () => {
-  await $fetch('/api/auth/logout', { method: 'POST', body: {} })
-  clearCurrentUser()
-  await navigateTo('/auth/login')
-}
+  await $fetch("/api/auth/logout", { method: "POST", body: {} });
+  clearCurrentUser();
+  await navigateTo("/auth/login");
+};
 </script>
 
 <style scoped>
@@ -93,6 +109,8 @@ const handleLogout = async () => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

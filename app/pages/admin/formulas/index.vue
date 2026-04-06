@@ -1,15 +1,16 @@
 <script setup lang="ts">
-
 const page = ref(1);
-const pageJumpInput = ref('1');
+const pageJumpInput = ref("1");
 
-const { data: response } = await useFetch('/api/formulas', {
-  method: 'GET',
-  query: { page, limit: 10 }
+const { data: response } = await useFetch("/api/formulas", {
+  method: "GET",
+  query: { page, limit: 10 },
 });
 
 const formulas = computed(() => response.value?.data || []);
-const metadata = computed(() => response.value?.metadata || { page: 1, totalPages: 1 });
+const metadata = computed(
+  () => response.value?.metadata || { page: 1, totalPages: 1 },
+);
 
 const nextPage = () => {
   if (page.value < metadata.value.totalPages) {
@@ -37,32 +38,47 @@ const goToPage = () => {
   pageJumpInput.value = String(targetPage);
 };
 
-watch(() => metadata.value.page, (currentPage) => {
-  pageJumpInput.value = String(currentPage);
-}, { immediate: true });
-
+watch(
+  () => metadata.value.page,
+  (currentPage) => {
+    pageJumpInput.value = String(currentPage);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <div class="page-header">
     <h1>🧪 Fórmulas</h1>
-    <button class="btn-primary" @click="navigateTo('/admin/formulas/register')">+ Nova Fórmula</button>
+    <button class="btn-primary" @click="navigateTo('/admin/formulas/register')">
+      + Nova Fórmula
+    </button>
   </div>
   <div class="card">
     <template v-if="formulas.length">
       <table class="list-table">
         <thead>
-          <tr><th>Fórmula</th></tr>
+          <tr>
+            <th>Fórmula</th>
+          </tr>
         </thead>
         <tbody>
-          <tr v-for="formula in formulas" :key="formula.id" @click="navigateTo(`/admin/formulas/${formula.id}`)">
+          <tr
+            v-for="formula in formulas"
+            :key="formula.id"
+            @click="navigateTo(`/admin/formulas/${formula.id}`)"
+          >
             <td>{{ formula.name }}</td>
           </tr>
         </tbody>
       </table>
       <div class="pagination">
-        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">Anterior</button>
-        <span class="pagination-info">Página {{ metadata.page }} de {{ metadata.totalPages }}</span>
+        <button class="btn-secondary" :disabled="page <= 1" @click="prevPage">
+          Anterior
+        </button>
+        <span class="pagination-info"
+          >Página {{ metadata.page }} de {{ metadata.totalPages }}</span
+        >
         <div class="pagination-jump">
           <label for="admin-formulas-page-jump">Ir para</label>
           <input
@@ -76,7 +92,13 @@ watch(() => metadata.value.page, (currentPage) => {
             @keyup.enter.prevent="goToPage"
           />
         </div>
-        <button class="btn-secondary" :disabled="page >= metadata.totalPages" @click="nextPage">Próxima</button>
+        <button
+          class="btn-secondary"
+          :disabled="page >= metadata.totalPages"
+          @click="nextPage"
+        >
+          Próxima
+        </button>
       </div>
     </template>
     <div v-else class="empty">Nenhuma fórmula cadastrada.</div>

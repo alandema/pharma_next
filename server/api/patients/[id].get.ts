@@ -9,7 +9,10 @@ export default defineEventHandler(async (event) => {
     where,
     include: {
       prescriptions: {
-        orderBy: { date_prescribed: 'desc' },
+        orderBy: [
+          { date_prescribed: 'desc' },
+          { created_at: 'desc' },
+        ],
         take: 3,
       },
       user: { select: { id: true, email: true, full_name: true } },

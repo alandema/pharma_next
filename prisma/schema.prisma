@@ -15,6 +15,7 @@ model User {
   role              String
   is_active         Boolean        @default(true)
   full_name         String
+  title             String?
   cpf               String         @unique
   gender            String
   birth_date        DateTime       @db.Date
