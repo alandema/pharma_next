@@ -52,6 +52,7 @@ export async function generatePDFDocument(
     const signatureStamp = signatureStatus === 'signed' ? `${prescriberDisplayName}` : 'DOCUMENTO NÃO ASSINADO';
     const signatureStampColor = signatureStatus === 'signed' ? '#000000' : '#B91C1C';
     const signatureFontPathCandidates = [
+      resolvePath(process.cwd(), 'server', 'assets', 'Thesignature.ttf'),
       resolvePath(process.cwd(), 'public', 'Thesignature.ttf'),
       resolvePath(process.cwd(), '.output', 'public', 'Thesignature.ttf'),
     ];
