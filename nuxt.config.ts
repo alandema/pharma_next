@@ -25,7 +25,7 @@ export default defineNuxtConfig({
     safeidBaseUrl: requireEnv('SAFEID_BASE_URL'),
     activationTokenSecret: requireEnv('ACTIVATION_TOKEN_SECRET'),
     activationBaseUrl: requireEnv('ACTIVATION_BASE_URL'),
-    allowSigningBypass: process.env.ALLOW_SIGNING_BYPASS === 'true' && process.env.NODE_ENV !== 'production',
+    allowSigningBypass: requireEnv('ALLOW_SIGNING_BYPASS') === 'true',
     public: {
       nodeEnv: requireEnv('NODE_ENV')
     }
