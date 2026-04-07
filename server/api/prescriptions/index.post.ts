@@ -237,7 +237,7 @@ async function sendPatientEmail(patientEmail: string, patientName: string, presc
   await sgMail.send({
     to: patientEmail,
     from: config.fromEmail,
-    subject: 'Sua Nova Prescrição - Pharma Next',
+    subject: 'Sua Nova Prescrição - Amma Farmácia',
     html: patientHtml,
   });
 }
