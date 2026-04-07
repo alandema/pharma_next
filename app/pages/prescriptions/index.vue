@@ -150,6 +150,8 @@ const filterByPatient = () => {
   page.value = 1;
 };
 
+// test
+
 const clearFilter = () => {
   selectedPatientId.value = "";
   startDate.value = "";
