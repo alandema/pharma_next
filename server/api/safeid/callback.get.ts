@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
   if (session.status === 'expired') {
     setResponseStatus(event, 410)
-    return renderCallbackPage('Sessão expirada', 'A sessão de assinatura expirou. Gere um novo QR Code no Pharma Next.')
+    return renderCallbackPage('Sessão expirada', 'A sessão de assinatura expirou. Gere um novo QR Code no Amma Farmácia.')
   }
 
   if (error) {
@@ -72,5 +72,5 @@ export default defineEventHandler(async (event) => {
   session.errorMessage = undefined
   await saveSafeIdQrSession(session)
 
-  return renderCallbackPage('Autorização recebida', 'Você já pode voltar ao Pharma Next para finalizar a assinatura do documento.')
+  return renderCallbackPage('Autorização recebida', 'Você já pode voltar ao Amma Farmácia para finalizar a assinatura do documento.')
 })
