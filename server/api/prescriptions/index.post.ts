@@ -1,10 +1,18 @@
 import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend';
 import { put } from '@vercel/blob';
 import { createHash } from 'node:crypto';
 import { prescriptionPostBodySchema } from '../../utils/contractSchemas';
 import { readStrictBody } from '../../utils/requestValidation';
 
 const config = useRuntimeConfig();
+const resendApiKey = config.resendApiKey;
+const sendgridApiKey = typeof config.sendgridApiKey === 'string' ? config.sendgridApiKey.trim() : '';
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+if (sendgridApiKey) {
+  sgMail.setApiKey(sendgridApiKey);
+}
+
 const templateStorage = useStorage('assets:server');
 const templateCache = new Map<string, string>();
 
@@ -137,9 +145,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Paciente ou prescritor inválido para salvar.' });
   }
 
-  const sendgridApiKey = config.sendgridApiKey;
-  if (!sendgridApiKey) {
-    throw createError({ statusCode: 500, statusMessage: 'SENDGRID_API_KEY é obrigatório para criar prescrições.' });
+  if (!resend) {
+    throw createError({ statusCode: 500, statusMessage: 'RESEND_API_KEY é obrigatório para criar prescrições.' });
   }
 
   const alwaysSendEmailsRaw = config.alwaysSendEmails;
@@ -151,8 +158,6 @@ export default defineEventHandler(async (event) => {
     .split(',')
     .map((email) => email.trim())
     .filter((email) => email.length > 0);
-
-  sgMail.setApiKey(sendgridApiKey);
 
   const prescription = await prisma.prescription.create({
     data: {
@@ -199,6 +204,52 @@ export default defineEventHandler(async (event) => {
   };
 });
 
+type EmailPayload = {
+  to: string | string[];
+  from: string;
+  subject: string;
+  html: string;
+};
+
+async function sendEmailWithFallback(payload: EmailPayload) {
+  if (!resend) {
+    throw createError({ statusCode: 500, statusMessage: 'RESEND_API_KEY é obrigatório para envio de e-mail.' });
+  }
+
+  const to = Array.isArray(payload.to) ? payload.to : [payload.to];
+
+  try {
+    const { error } = await resend.emails.send({
+      from: payload.from,
+      to,
+      subject: payload.subject,
+      html: payload.html,
+    });
+
+    if (!error) {
+      return;
+    }
+
+    console.error('Falha ao enviar e-mail via Resend, tentando SendGrid.', error);
+  } catch (error) {
+    console.error('Erro ao enviar e-mail via Resend, tentando SendGrid.', error);
+  }
+
+  if (!sendgridApiKey) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Falha no envio com Resend e SENDGRID_API_KEY não está configurada para fallback.',
+    });
+  }
+
+  await sgMail.send({
+    to,
+    from: payload.from,
+    subject: payload.subject,
+    html: payload.html,
+  });
+}
+
 
 async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSendEmails: string[]) {
   const date = new Date().toLocaleDateString('pt-BR');
@@ -206,7 +257,7 @@ async function sendPharmacyEmail(patientName: string, pdfUrl: string, alwaysSend
   pharmacyHtml = pharmacyHtml.replace('{{patientName}}', patientName)
                              .replace('{{pdfUrl}}', pdfUrl);
   for (const email of alwaysSendEmails) {
-    await sgMail.send({
+    await sendEmailWithFallback({
       to: email,
       from: config.fromEmail,
       subject: `${patientName} - ${date} - Nova Prescrição Salva`,
@@ -220,7 +271,7 @@ async function sendPrescriberEmail(prescriberEmail: string, prescriberName: stri
   doctorHtml = doctorHtml.replace('{{patientName}}', patientName)
                          .replace('{{prescriberName}}', prescriberName)
                          .replace('{{pdfUrl}}', pdfUrl);
-  await sgMail.send({
+  await sendEmailWithFallback({
     to: prescriberEmail,
     from: config.fromEmail,
     subject: `Prescrição gerada para - ${patientName}`,
@@ -234,7 +285,7 @@ async function sendPatientEmail(patientEmail: string, patientName: string, presc
                            .replace('{{prescriberName}}', prescriberName)
                            .replace('{{pdfUrl}}', pdfUrl);
   console.log("Sending email to patient:", patientEmail);
-  await sgMail.send({
+  await sendEmailWithFallback({
     to: patientEmail,
     from: config.fromEmail,
     subject: 'Sua Nova Prescrição - Amma Farmácia',
