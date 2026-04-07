@@ -220,7 +220,7 @@ async function sendEmailWithFallback(payload: EmailPayload) {
 
   try {
     const { error } = await resend.emails.send({
-      from: payload.from,
+      from: `Amma Farmácia <${payload.from}>`,
       to,
       subject: payload.subject,
       html: payload.html,
