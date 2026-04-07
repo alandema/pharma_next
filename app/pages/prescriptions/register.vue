@@ -49,7 +49,6 @@ const getSingleQueryValue = (value: QueryValue) => {
 const patient_id = ref(
   getSingleQueryValue(route.query.patient_id as QueryValue),
 );
-const patientOptionsPage = ref(1);
 const date_prescribed = ref(getTodayInputDate());
 const cid_code = ref(getSingleQueryValue(route.query.cid_code as QueryValue));
 const manual_cid = ref("");
@@ -69,7 +68,30 @@ let signStatusPollTimer: ReturnType<typeof setInterval> | null = null;
 
 const isSubmitting = ref(false);
 const formulaCache = ref<Record<string, Formula>>({});
+const PATIENTS_FETCH_LIMIT = 50;
 const FORMULAS_FETCH_LIMIT = 50;
+
+const fetchAllPatients = async () => {
+  const allPatients: PatientOption[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages) {
+    const response = await $fetch<PaginatedResponse<PatientOption>>(
+      "/api/patients",
+      {
+        method: "GET",
+        query: { page, limit: PATIENTS_FETCH_LIMIT },
+      },
+    );
+
+    allPatients.push(...response.data);
+    totalPages = response.metadata.totalPages;
+    page += 1;
+  }
+
+  return allPatients.sort((a, b) => a.name.localeCompare(b.name));
+};
 
 const fetchAllFormulas = async () => {
   const allFormulas: Formula[] = [];
@@ -93,30 +115,16 @@ const fetchAllFormulas = async () => {
 const { data: cidsData } = await useAsyncData("cids", () =>
   queryCollection("cids").first(),
 );
-const { data: patientsResponse } = await useFetch<
-  PaginatedResponse<PatientOption>
->("/api/patients", {
-  method: "GET",
-  query: { page: patientOptionsPage, limit: 10 },
-  watch: [patientOptionsPage],
-});
+const { data: patientsData } = await useAsyncData(
+  "prescription-register-patients-all",
+  fetchAllPatients,
+);
 const { data: formulasData } = await useAsyncData(
   "prescription-formulas-all",
   fetchAllFormulas,
 );
 
-const patients = computed<PatientOption[]>(
-  () => patientsResponse.value?.data || [],
-);
-const patientsMetadata = computed(
-  () =>
-    patientsResponse.value?.metadata || {
-      total: 0,
-      page: 1,
-      limit: 10,
-      totalPages: 1,
-    },
-);
+const patients = computed<PatientOption[]>(() => patientsData.value || []);
 const formulas = computed<Formula[]>(() => formulasData.value || []);
 
 watch(
@@ -195,18 +203,6 @@ const parseFormulasFromQuery = () => {
 const addFormula = () => {
   if (formulasInput.value.length >= 10) return;
   formulasInput.value.push({ formula_id: "", description: "" });
-};
-
-const nextPatientsPage = () => {
-  if (patientOptionsPage.value < patientsMetadata.value.totalPages) {
-    patientOptionsPage.value++;
-  }
-};
-
-const prevPatientsPage = () => {
-  if (patientOptionsPage.value > 1) {
-    patientOptionsPage.value--;
-  }
 };
 
 const removeFormula = (index: number) => {
@@ -625,32 +621,6 @@ onBeforeUnmount(() => {
         <div class="form-row">
           <div class="form-group">
             <label>Paciente *</label>
-            <div
-              v-if="patientsMetadata.totalPages > 1"
-              class="lookup-pagination"
-              style="margin-bottom: 0.5rem"
-            >
-              <button
-                type="button"
-                class="btn-sm"
-                :disabled="patientOptionsPage <= 1"
-                @click="prevPatientsPage"
-              >
-                Anterior
-              </button>
-              <span
-                >Página {{ patientsMetadata.page }} de
-                {{ patientsMetadata.totalPages }}</span
-              >
-              <button
-                type="button"
-                class="btn-sm"
-                :disabled="patientOptionsPage >= patientsMetadata.totalPages"
-                @click="nextPatientsPage"
-              >
-                Próxima
-              </button>
-            </div>
             <select v-model="patient_id" required>
               <option value="" disabled>Selecione um paciente</option>
               <option
