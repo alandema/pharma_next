@@ -52,11 +52,11 @@ type PaginatedPatientResponse = {
 const route = useRoute();
 const page = ref(1);
 const pageJumpInput = ref("1");
-const patientOptionsPage = ref(1);
 const { formatDatePtBR } = useDateFormatting();
 const selectedPatientId = ref((route.query.patientId as string) || "");
 const startDate = ref("");
 const endDate = ref("");
+const PATIENTS_FETCH_LIMIT = 50;
 
 const { currentUser } = useCurrentUser();
 const isAdmin = computed(() => {
@@ -64,21 +64,33 @@ const isAdmin = computed(() => {
   return role === "admin" || role === "superadmin";
 });
 
-const { data: patientsResponse } = await useFetch<PaginatedPatientResponse>(
-  "/api/patients",
-  {
-    method: "GET",
-    query: {
-      page: patientOptionsPage,
-      limit: 10,
-    },
-    watch: [patientOptionsPage],
-  },
+const fetchAllPatients = async () => {
+  const allPatients: Patient[] = [];
+  let currentPage = 1;
+  let totalPages = 1;
+
+  while (currentPage <= totalPages) {
+    const response = await $fetch<PaginatedPatientResponse>("/api/patients", {
+      method: "GET",
+      query: {
+        page: currentPage,
+        limit: PATIENTS_FETCH_LIMIT,
+      },
+    });
+
+    allPatients.push(...response.data);
+    totalPages = response.metadata.totalPages;
+    currentPage += 1;
+  }
+
+  return allPatients.sort((a, b) => a.name.localeCompare(b.name));
+};
+
+const { data: patientsData } = await useAsyncData(
+  "prescriptions-patients-all",
+  fetchAllPatients,
 );
-const patients = computed<Patient[]>(() => patientsResponse.value?.data || []);
-const patientsMetadata = computed(
-  () => patientsResponse.value?.metadata || { page: 1, totalPages: 1 },
-);
+const patients = computed<Patient[]>(() => patientsData.value || []);
 
 const { data: response } = await useFetch<PaginatedPrescriptionResponse>(
   "/api/prescriptions",
@@ -134,25 +146,12 @@ watch(
   { immediate: true },
 );
 
-const nextPatientsPage = () => {
-  if (patientOptionsPage.value < patientsMetadata.value.totalPages) {
-    patientOptionsPage.value++;
-  }
-};
-
-const prevPatientsPage = () => {
-  if (patientOptionsPage.value > 1) {
-    patientOptionsPage.value--;
-  }
-};
-
 const filterByPatient = () => {
   page.value = 1;
 };
 
 const clearFilter = () => {
   selectedPatientId.value = "";
-  patientOptionsPage.value = 1;
   startDate.value = "";
   endDate.value = "";
   page.value = 1;
@@ -180,26 +179,6 @@ const clearFilter = () => {
           {{ patient.name }}
         </option>
       </select>
-      <div v-if="patientsMetadata.totalPages > 1" class="lookup-pagination">
-        <button
-          class="btn-sm"
-          :disabled="patientOptionsPage <= 1"
-          @click="prevPatientsPage"
-        >
-          Anterior
-        </button>
-        <span
-          >Página {{ patientsMetadata.page }} de
-          {{ patientsMetadata.totalPages }}</span
-        >
-        <button
-          class="btn-sm"
-          :disabled="patientOptionsPage >= patientsMetadata.totalPages"
-          @click="nextPatientsPage"
-        >
-          Próxima
-        </button>
-      </div>
     </div>
     <div class="filter-group">
       <label>De:</label>
