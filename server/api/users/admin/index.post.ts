@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend';
 import { prescriberCreateBodySchema } from '../../../utils/contractSchemas';
 import { validatePassword } from '../../../utils/credentials';
 import {
@@ -12,6 +13,13 @@ import { readStrictBody } from '../../../utils/requestValidation';
 import { requireAdminLikeUser } from '../../../utils/rbac';
 
 const config = useRuntimeConfig()
+const resendApiKey = config.resendApiKey
+const sendgridApiKey = typeof config.sendgridApiKey === 'string' ? config.sendgridApiKey.trim() : ''
+const resend = resendApiKey ? new Resend(resendApiKey) : null
+if (sendgridApiKey) {
+  sgMail.setApiKey(sendgridApiKey)
+}
+
 const templateStorage = useStorage('assets:server')
 
 let accountActivationTemplate: string | undefined
@@ -22,8 +30,6 @@ async function getAccountActivationTemplate() {
   }
 
   const template = await templateStorage.getItem<string>('account_activation.html')
-  console.log(`${template}`);
-  console.log(typeof template);
   if (typeof template !== 'string') {
     throw createError({ statusCode: 500, statusMessage: 'Template de ativação de conta ausente.' })
   }
@@ -106,11 +112,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'ACTIVATION base URL não configurada' })
   }
 
-  const sendgridApiKey = config.sendgridApiKey
-  if (!sendgridApiKey) {
-    throw createError({ statusCode: 500, statusMessage: 'SENDGRID_API_KEY é obrigatório para ativação de conta' })
+  if (!resend) {
+    throw createError({ statusCode: 500, statusMessage: 'RESEND_API_KEY é obrigatório para ativação de conta' })
   }
-  sgMail.setApiKey(sendgridApiKey)
 
   
   let prescriber
@@ -194,6 +198,52 @@ export default defineEventHandler(async (event) => {
   };
 })
 
+type EmailPayload = {
+  to: string | string[]
+  from: string
+  subject: string
+  html: string
+}
+
+async function sendEmailWithFallback(payload: EmailPayload) {
+  if (!resend) {
+    throw createError({ statusCode: 500, statusMessage: 'RESEND_API_KEY é obrigatório para envio de e-mail.' })
+  }
+
+  const to = Array.isArray(payload.to) ? payload.to : [payload.to]
+
+  try {
+    const { error } = await resend.emails.send({
+      from: `Amma Farmácia <${payload.from}>`,
+      to,
+      subject: payload.subject,
+      html: payload.html,
+    })
+
+    if (!error) {
+      return
+    }
+
+    console.error('Falha ao enviar e-mail via Resend, tentando SendGrid.', error)
+  } catch (error) {
+    console.error('Erro ao enviar e-mail via Resend, tentando SendGrid.', error)
+  }
+
+  if (!sendgridApiKey) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Falha no envio com Resend e SENDGRID_API_KEY não está configurada para fallback.',
+    })
+  }
+
+  await sgMail.send({
+    to,
+    from: payload.from,
+    subject: payload.subject,
+    html: payload.html,
+  })
+}
+
 async function sendActivationEmail(email: string, fullName: string, activationLink: string) {
   const accountActivationTemplate = await getAccountActivationTemplate()
   let html = accountActivationTemplate
@@ -202,11 +252,11 @@ async function sendActivationEmail(email: string, fullName: string, activationLi
     .replace('{{fullName}}', fullName)
     .replace('{{activationLink}}', activationLink)
 
-    await sgMail.send({
-      to: email,
-      from: config.fromEmail,
-      subject: 'Ative sua conta',
-      html,
-    })
+  await sendEmailWithFallback({
+    to: email,
+    from: config.fromEmail,
+    subject: 'Ative sua conta',
+    html,
+  })
 
 }
