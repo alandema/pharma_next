@@ -55,4 +55,28 @@ codes:
     name: Hipotireoidismo não especificado
   - id: 18
     code: K05
-    name: Gengivite e doenças periodontais
+    name: "Gengivite e doenças periodontais. N95 Menopausa. Justificativa: Doença periodontal associada à deficiência hormonal, inflamação crônica e estresse oxidativo, com necessidade de suporte vitamínico, aminoácidos e modulação neuroendócrina."
+  - id: 19
+    code: K05
+    name: "Gengivite e doenças periodontais. N95 Menopausa. Justificativa: Gengivite crônica com comprometimento da cicatrização tecidual, associada a desequilíbrio hormonal e deficiência nutricional."
+  - id: 20
+    code: K05
+    name: "Gengivite e doenças periodontais. N95 Menopausa. Justificativa: Periodontite com resposta inflamatória exacerbada, associada à deficiência estrogênica, estresse oxidativo e baixa regeneração tecidual."
+  - id: 21
+    code: K05
+    name: "Gengivite e doenças periodontais. N95 Menopausa. Justificativa: Periodontite com baixa resposta regenerativa associada a deficiência hormonal e suporte nutricional inadequado."
+  - id: 22
+    code: K05
+    name: "Gengivite e doenças periodontais. N95 Menopausa. Justificativa: Doença periodontal com impacto sistêmico, associada a desequilíbrio hormonal e metabólico."
+  - id: 23
+    code: K05
+    name: "Gengivite e doenças periodontais. E29 Hipogonadismo masculino. Justificativa: Periodontite com comprometimento da cicatrização e necessidade de suporte anabólico e nutricional."
+  - id: 24
+    code: K05
+    name: "Gengivite e doenças periodontais. E29 Hipogonadismo masculino. Justificativa: Doença periodontal associada à deficiência androgênica, inflamação crônica e prejuízo na regeneração tecidual."
+  - id: 25
+    code: K05
+    name: "Gengivite e doenças periodontais. E29 Hipogonadismo masculino. Justificativa: Periodontite com baixa resposta cicatricial associada a deficiência hormonal e estresse oxidativo."
+  - id: 26
+    code: K05
+    name: "Gengivite e doenças periodontais. E29 Hipogonadismo masculino. Justificativa: Periodontite com evolução prolongada associada à deficiência hormonal e metabólica."

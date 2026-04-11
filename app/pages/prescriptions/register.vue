@@ -162,8 +162,32 @@ const formulaOptions = computed<Formula[]>(() => {
 
 const cids = computed(() => {
   const codes = cidsData.value?.codes ?? [];
-  return [...codes].sort((a, b) => a.name.localeCompare(b.name));
+  return [...codes].sort((a, b) => {
+    if (a.code === "Outro") return -1;
+    if (b.code === "Outro") return 1;
+    return a.code.localeCompare(b.code);
+  });
 });
+
+const selectedCidLabel = computed(() => {
+  const selectedCid = cids.value.find((cid) => cid.code === cid_code.value);
+  if (selectedCid) {
+    return `${selectedCid.code} - ${selectedCid.name}`;
+  }
+  if (cid_code.value === "Outro") {
+    const manual = manual_cid.value.trim();
+    return manual ? `Outro - ${manual}` : "Outro";
+  }
+  return "Selecione um código CID";
+});
+const cidDropdownRef = ref<HTMLDetailsElement | null>(null);
+
+const selectCidCode = (code: string) => {
+  cid_code.value = code;
+  if (cidDropdownRef.value) {
+    cidDropdownRef.value.open = false;
+  }
+};
 
 const parseFormulasFromQuery = () => {
   const formulasQuery = getSingleQueryValue(route.query.formulas as QueryValue);
@@ -650,12 +674,29 @@ onBeforeUnmount(() => {
         </div>
         <div class="form-group">
           <label>Código CID *</label>
-          <select v-model="cid_code" required>
-            <option value="" disabled>Selecione um código CID</option>
-            <option v-for="c in cids" :key="c.code" :value="c.code">
-              {{ c.code }} – {{ c.name }}
-            </option>
-          </select>
+          <details ref="cidDropdownRef" style="position: relative">
+            <summary
+              class="cid-dropdown-summary"
+              :style="!cid_code ? 'color: var(--c-muted); padding: 0.7rem 0; border-bottom: 2px solid var(--c-border); line-height: 1.35; white-space: normal; word-break: break-word; cursor: pointer;' : 'padding: 0.7rem 0; border-bottom: 2px solid var(--c-border); line-height: 1.35; white-space: normal; word-break: break-word; cursor: pointer;'"
+            >
+              {{ selectedCidLabel }}
+            </summary>
+            <div
+              role="listbox"
+              aria-label="Seleção de Código CID"
+              style="position: absolute; z-index: 20; inset: calc(100% + 0.5rem) 0 auto; max-height: 16rem; overflow-y: auto; border: 1px solid var(--c-border); border-radius: var(--radius); background: var(--c-surface); box-shadow: var(--shadow-lg); padding: 0.25rem"
+            >
+              <button
+                v-for="c in cids"
+                :key="c.code"
+                type="button"
+                style="width: 100%; padding: 0.65rem 0.75rem; border: none; background: transparent; color: var(--c-text); text-align: left; text-transform: none; letter-spacing: normal; font-weight: 400; line-height: 1.35; white-space: normal; word-break: break-word; justify-content: flex-start"
+                @click="selectCidCode(c.code)"
+              >
+                {{ c.code }} – {{ c.name }}
+              </button>
+            </div>
+          </details>
         </div>
         <div class="form-group" v-if="cid_code === 'Outro'">
           <input
@@ -848,3 +889,13 @@ onBeforeUnmount(() => {
     </form>
   </div>
 </template>
+
+<style scoped>
+.cid-dropdown-summary {
+  list-style: none;
+}
+
+.cid-dropdown-summary::-webkit-details-marker {
+  display: none;
+}
+</style>
