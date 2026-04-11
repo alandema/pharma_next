@@ -28,6 +28,8 @@ export default defineEventHandler(async (event) => {
   return {
     id: patient.id,
     name: patient.name,
+    email: patient.email,
+    send_email: patient.send_email,
     rg: patient.rg,
     gender: patient.gender,
     cpf: patient.cpf,
