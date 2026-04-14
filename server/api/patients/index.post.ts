@@ -60,6 +60,14 @@ export default defineEventHandler(async (event) => {
       city: normalizedData.city,
       medical_history: normalizedData.medical_history,
     },
+  }).catch((error: any) => {
+    if (error?.code === 'P2002') {
+      const target = Array.isArray(error?.meta?.target) ? String(error.meta.target[0] ?? '') : String(error?.meta?.target ?? '')
+      if (target.includes('cpf')) throw createError({ statusCode: 409, statusMessage: 'CPF já cadastrado.' })
+      if (target.includes('email')) throw createError({ statusCode: 409, statusMessage: 'E-mail já cadastrado.' })
+      throw createError({ statusCode: 409, statusMessage: 'Valor já cadastrado.' })
+    }
+    throw createError({ statusCode: 400, statusMessage: 'Não foi possível cadastrar o paciente. Verifique os dados e tente novamente.' })
   })
 
   await prisma.log.create({ data: { event_time: new Date(), message: `Cadastrou paciente: ${patient.name}`, user_id: user.userId, patient_id: patient.id } })
