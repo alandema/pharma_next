@@ -99,8 +99,8 @@ const normalizeForm = () => ({
   birth_date: normalizeText(f.value.birth_date),
   phone: formatBrazilPhoneInput(f.value.phone),
   council: normalizeText(f.value.council),
-  council_number: normalizeText(f.value.council_number),
-  council_state: normalizeText(f.value.council_state).toUpperCase(),
+  council_number: normalizeText(f.value.council_number) ?? "",
+  council_state: normalizeText(f.value.council_state)?.toUpperCase() ?? "",
   zipcode: formatCepInput(f.value.zipcode),
   street: normalizeText(f.value.street, { titleCase: true }),
   address_number: normalizeText(f.value.address_number),
@@ -248,7 +248,7 @@ const submit = async () => {
         <select v-model="f.council" required>
           <option value="" disabled>Selecione</option>
           <option
-            v-for="council in councils?.councils"
+            v-for="council in [...(councils?.councils || [])].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))"
             :key="council.id"
             :value="council.abbreviation"
           >
@@ -258,11 +258,12 @@ const submit = async () => {
       </div>
       <div class="form-group">
         <label>Número do Conselho *</label>
-        <input v-model="f.council_number" required />
+        <input v-model="f.council_number" />
       </div>
       <div class="form-group">
         <label>UF Conselho *</label>
-        <select v-model="f.council_state" required>
+        <select v-model="f.council_state">
+          <option value="">Selecione</option>
           <option v-for="s in states" :key="s.id" :value="s.sigla">
             {{ s.sigla }}
           </option>

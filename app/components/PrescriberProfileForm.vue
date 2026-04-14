@@ -65,8 +65,6 @@ const REQUIRED_PROFILE_FIELDS: Array<{ key: string; label: string }> = [
   { key: "birth_date", label: "Data de nascimento" },
   { key: "phone", label: "Telefone" },
   { key: "council", label: "Conselho" },
-  { key: "council_number", label: "Número do conselho" },
-  { key: "council_state", label: "UF do conselho" },
   { key: "zipcode", label: "CEP" },
   { key: "street", label: "Endereço" },
   { key: "address_number", label: "Número" },
@@ -339,7 +337,7 @@ const handleSubmit = async () => {
         <select v-model="profile.council">
           <option value="">Selecione</option>
           <option
-            v-for="council in councils?.councils"
+            v-for="council in [...(councils?.councils || [])].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))"
             :key="council.id"
             :value="council.abbreviation"
           >
@@ -354,6 +352,7 @@ const handleSubmit = async () => {
       <div class="form-group">
         <label>UF Conselho</label>
         <select v-model="profile.council_state">
+          <option value="">Selecione</option>
           <option v-for="state in states" :key="state.id" :value="state.sigla">
             {{ state.sigla }}
           </option>

@@ -11,6 +11,7 @@ import {
 } from '../../../utils/inputNormalization';
 import { readStrictBody } from '../../../utils/requestValidation';
 import { requireAdminLikeUser } from '../../../utils/rbac';
+import { isCouncilNumberAndStateRequired } from '../../../utils/councilRequirement';
 
 const config = useRuntimeConfig()
 const resendApiKey = config.resendApiKey
@@ -66,8 +67,8 @@ export default defineEventHandler(async (event) => {
     birth_date: parseDateOnlyToUtcDate(normalizeText(birth_date)),
     phone: normalizeText(phone),
     council: normalizeText(council),
-    council_number: normalizeText(council_number),
-    council_state: normalizeText(council_state)?.toUpperCase() ?? null,
+    council_number: normalizeText(council_number) ?? '',
+    council_state: normalizeText(council_state)?.toUpperCase() ?? '',
     zipcode: normalizeText(zipcode),
     street: normalizeText(street, { titleCase: true }),
     address_number: normalizeText(address_number),
@@ -80,8 +81,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'E-mail é obrigatório' });
   }
 
-  const requiredFields = ['full_name', 'cpf', 'gender', 'birth_date', 'phone', 'council', 'council_number', 'council_state', 'zipcode', 'street', 'address_number', 'city', 'state'] as const
-  if (requiredFields.some((field) => !normalizedData[field])) {
+  const requiredFields = ['full_name', 'cpf', 'gender', 'birth_date', 'phone', 'council', 'zipcode', 'street', 'address_number', 'city', 'state'] as const
+  const councilNumberAndStateRequired = await isCouncilNumberAndStateRequired(event, normalizedData.council)
+  if (
+    requiredFields.some((field) => !normalizedData[field]) ||
+    (councilNumberAndStateRequired && (!normalizedData.council_number || !normalizedData.council_state))
+  ) {
     throw createError({ statusCode: 400, statusMessage: 'Todos os campos são obrigatórios, exceto complemento.' })
   }
 

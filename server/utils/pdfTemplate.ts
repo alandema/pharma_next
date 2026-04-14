@@ -106,8 +106,11 @@ export async function generatePDFDocument(
     doc.fillColor('black');
     doc.fontSize(12).text('_____________________________________', { align: 'center' });
     doc.text(`${prescriberTitle} ${prescriberDisplayName}`, { align: 'center' });
-    if (prescriber.council && prescriber.council_number && prescriber.council_state) {
-      doc.text(`${prescriber.council}: ${prescriber.council_number} / ${prescriber.council_state}`, { align: 'center' });
+    if (prescriber.council) {
+      const councilLine = prescriber.council_number && prescriber.council_state
+        ? `${prescriber.council}: ${prescriber.council_number} / ${prescriber.council_state}`
+        : `${prescriber.council}`;
+      doc.text(councilLine, { align: 'center' });
     }
 
     // presriber address and contact

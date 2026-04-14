@@ -2,15 +2,32 @@ councils:
   - id: 1
     name: Conselho Regional de Odontologia (CRO)
     abbreviation: CRO
+    required: true
   - id: 2
     name: Conselho Regional de Biomedicina (CRBM)
     abbreviation: CRBM
+    required: true
   - id: 3
     name: Conselho Regional de Enfermagem (COREN)
     abbreviation: COREN
+    required: true
   - id: 4
     name: Conselho Regional de Farmácia (CRF)
     abbreviation: CRF
+    required: true
   - id: 5
     name: Conselho Regional de Medicina (CRM)
     abbreviation: CRM
+    required: true
+  - id: 6
+    name: Conselho Regional de Nutrição (CRN)
+    abbreviation: CRN
+    required: true
+  - id: 7
+    name: Conselho Regional de Fisioterapia e Terapia Ocupacional (CREFITO)
+    abbreviation: CREFITO
+    required: true
+  - id: 8
+    name: Terapeuta Integrativo
+    abbreviation: Terapeuta Integrativo
+    required: false

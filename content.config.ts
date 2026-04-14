@@ -13,7 +13,7 @@ export default defineContentConfig({
       type: 'data',
       source: 'councils.yml',
       schema: z.object({
-        councils: z.array(z.object({ id: z.number(), name: z.string(), abbreviation: z.string() }))
+        councils: z.array(z.object({ id: z.number(), name: z.string(), abbreviation: z.string(), required: z.boolean() }))
       })
     })
   }

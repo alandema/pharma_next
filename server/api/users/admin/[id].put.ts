@@ -8,6 +8,7 @@ import {
 } from '../../../utils/inputNormalization';
 import { readStrictBody } from '../../../utils/requestValidation';
 import { assertCanManageTargetRole, isKnownRole, requireAdminLikeUser, PRESCRIBER_SAFE_SELECT } from '../../../utils/rbac';
+import { isCouncilNumberAndStateRequired } from '../../../utils/councilRequirement';
 
 const PRESCRIBER_FIELD_LABELS: Record<string, string> = {
   email: 'E-mail',
@@ -33,8 +34,6 @@ const REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS: Record<string, string> = {
   birth_date: 'Data de nascimento',
   phone: 'Telefone',
   council: 'Conselho',
-  council_number: 'Número do conselho',
-  council_state: 'UF do conselho',
   zipcode: 'CEP',
   street: 'Endereço',
   address_number: 'Número',
@@ -142,8 +141,8 @@ export default defineEventHandler(async (event) => {
     if ('birth_date' in body) updateData.birth_date = parseDateOnlyToUtcDate(normalizeText(body.birth_date))
     if ('phone' in body) updateData.phone = normalizeText(body.phone)
     if ('council' in body) updateData.council = normalizeText(body.council)
-    if ('council_number' in body) updateData.council_number = normalizeText(body.council_number)
-    if ('council_state' in body) updateData.council_state = normalizeText(body.council_state)?.toUpperCase() ?? null
+    if ('council_number' in body) updateData.council_number = normalizeText(body.council_number) ?? ''
+    if ('council_state' in body) updateData.council_state = normalizeText(body.council_state)?.toUpperCase() ?? ''
     if ('zipcode' in body) updateData.zipcode = normalizeText(body.zipcode)
     if ('street' in body) updateData.street = normalizeText(body.street, { titleCase: true })
     if ('address_number' in body) updateData.address_number = normalizeText(body.address_number)
@@ -177,9 +176,15 @@ export default defineEventHandler(async (event) => {
     state: 'state' in updateData ? updateData.state : prescriber.state,
   }
 
-  const missingRequiredField = getMissingRequiredPrescriberField(finalRequiredPrescriberData, REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS)
+  const requiredPrescriberProfileFieldLabels = { ...REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS }
+  if (await isCouncilNumberAndStateRequired(event, finalRequiredPrescriberData.council)) {
+    requiredPrescriberProfileFieldLabels.council_number = 'Número do conselho'
+    requiredPrescriberProfileFieldLabels.council_state = 'UF do conselho'
+  }
+
+  const missingRequiredField = getMissingRequiredPrescriberField(finalRequiredPrescriberData, requiredPrescriberProfileFieldLabels)
   if (missingRequiredField) {
-    throw createError({ statusCode: 400, statusMessage: `${REQUIRED_PRESCRIBER_PROFILE_FIELD_LABELS[missingRequiredField]} é obrigatório.` })
+    throw createError({ statusCode: 400, statusMessage: `${requiredPrescriberProfileFieldLabels[missingRequiredField]} é obrigatório.` })
   }
 
   try {
